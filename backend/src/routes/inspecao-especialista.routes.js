@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { enviarNotificacaoAnalise, enviarNotificacaoNovaInspecao } = require('./notificacoes.routes');
 
 // Banco de dados em memória para inspeções pendentes
 const inspecoesPendentes = new Map();
@@ -203,6 +204,9 @@ router.post('/pendentes/:id/analisar', async (req, res) => {
 
     // Salvar também na lista de ocorrências (para aparecer no dashboard)
     // Isso seria integrado com o sistema de ocorrências existente
+
+    // Enviar notificação push para o operador que criou a inspeção
+    const notificacaoResultado = await enviarNotificacaoAnalise(inspecao, inspecao.operador_id);
     
     console.log('\n✅ =========================================');
     console.log('✅ INSPEÇÃO ANALISADA PELO ESPECIALISTA');
@@ -210,11 +214,13 @@ router.post('/pendentes/:id/analisar', async (req, res) => {
     console.log(`🆔 ID: ${inspecao.id}`);
     console.log(`🌱 Diagnóstico: ${tipo}`);
     console.log(`📊 Severidade: ${severidade}`);
+    console.log(`🔔 Notificação enviada: ${notificacaoResultado.sucesso ? '✅ Sim' : '❌ Não'}`);
     console.log(`✅ =========================================\n`);
 
     res.json({
       sucesso: true,
       mensagem: 'Análise registrada com sucesso',
+      notificacao: notificacaoResultado,
       inspecao: {
         id: inspecao.id,
         status: 'analisada',

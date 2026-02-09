@@ -2,15 +2,21 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#1a365d" />
-    <meta name="description" content="AgroFocus - Monitoramento de índices de vegetação e produtividade agrícola" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#166534" />
+    <meta name="background-color" content="#ffffff" />
+    <meta name="description" content="AgroFocus - Monitoramento de índices de vegetação e produtividade agrícola com suporte offline" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AgroFocus" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="AgroFocus" />
     
     <title>AgroFocus - Monitoramento Agrícola</title>
     
     <!-- Favicon -->
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.svg" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.svg" />
     
     <!-- Manifest PWA -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
@@ -34,6 +40,7 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         background: #f1f5f9;
+        overscroll-behavior-y: none;
       }
       
       #root {
@@ -47,7 +54,7 @@
         align-items: center;
         justify-content: center;
         min-height: 100vh;
-        background: linear-gradient(135deg, #1a365d 0%, #2d5a87 100%);
+        background: linear-gradient(135deg, #166534 0%, #22c55e 100%);
         color: white;
       }
       
@@ -64,10 +71,98 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+      
+      /* Estilos para PWA standalone */
+      @media all and (display-mode: standalone) {
+        body {
+          padding-top: env(safe-area-inset-top);
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+      }
+      
+      /* Splash screen */
+      .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #166534 0%, #22c55e 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+      
+      .splash-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .splash-logo {
+        font-size: 80px;
+        margin-bottom: 20px;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      
+      .splash-title {
+        font-size: 32px;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 10px;
+      }
+      
+      .splash-subtitle {
+        font-size: 16px;
+        color: rgba(255,255,255,0.8);
+      }
+      
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
     </style>
+    
+    <!-- Registro do Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('%PUBLIC_URL%/service-worker.js')
+            .then((registration) => {
+              console.log('[PWA] Service Worker registrado:', registration.scope);
+              
+              // Verifica atualizações
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Nova versão disponível
+                    if (confirm('Nova versão disponível! Deseja atualizar?')) {
+                      newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.log('[PWA] Falha ao registrar Service Worker:', error);
+            });
+        });
+      }
+    </script>
   </head>
   <body>
     <noscript>Você precisa habilitar JavaScript para usar o AgroFocus.</noscript>
+    
+    <!-- Splash Screen -->
+    <div id="splash" class="splash-screen">
+      <div class="splash-logo">🌱</div>
+      <div class="splash-title">AgroFocus</div>
+      <div class="splash-subtitle">Carregando...</div>
+    </div>
     
     <div id="root">
       <div class="initial-loading">
@@ -76,5 +171,18 @@
         <p>Carregando... (suporte offline ativo)</p>
       </div>
     </div>
+    
+    <script>
+      // Remove splash screen quando o app carregar
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const splash = document.getElementById('splash');
+          if (splash) {
+            splash.classList.add('hidden');
+            setTimeout(() => splash.remove(), 500);
+          }
+        }, 1500);
+      });
+    </script>
   </body>
 </html>

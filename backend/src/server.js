@@ -1,17 +1,18 @@
 /**
  * AgroFocus API Server
- * Servidor unificado com todas as rotas
+ * Servidor unificado com PostgreSQL
  */
 
-// Carregar variáveis de ambiente PRIMEIRO - antes de qualquer importação
+// Carregar variáveis de ambiente PRIMEIRO
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// Debug: mostrar se as variáveis GEE foram carregadas
+// Importar configuração do banco de dados
+const { testConnection } = require('./config/database');
+
+// Debug: mostrar variáveis de ambiente
+console.log('🔧 ENV Check - DATABASE_URL:', process.env.DATABASE_URL ? '✅ Configurado' : '❌ Não definido');
 console.log('🔧 ENV Check - GEE_PROJECT_ID:', process.env.GEE_PROJECT_ID ? '✅ OK' : '❌ Não definido');
-console.log('🔧 ENV Check - GEE_CLIENT_EMAIL:', process.env.GEE_CLIENT_EMAIL ? '✅ OK' : '❌ Não definido');
-console.log('🔧 ENV Check - GEE_PRIVATE_KEY:', process.env.GEE_PRIVATE_KEY ? `✅ OK (${process.env.GEE_PRIVATE_KEY.length} chars)` : '❌ Não definido');
-console.log('🔧 ENV Check - OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '✅ OK' : '❌ Não definido');
 
 const express = require('express');
 const cors = require('cors');
@@ -25,78 +26,17 @@ const produtividadeRoutes = require('./routes/produtividade.routes');
 const meteorologiaRoutes = require('./routes/meteorologia.routes');
 const { router: authRoutes, authMiddleware } = require('./routes/auth.routes');
 
-// Dados mockados para cadastros
-const fazendas = [
-  { id: '1', nome: 'Fazenda São João', municipio: 'Ribeirão Preto', estado: 'SP', area_total: 150.5, car: 'SP-123456' },
-  { id: '2', nome: 'Fazenda Boa Vista', municipio: 'Uberaba', estado: 'MG', area_total: 320.0, car: 'MG-789012' }
-];
+// NOVAS ROTAS COM POSTGRESQL
+const fazendasRoutes = require('./routes/fazendas.routes');
+const talhoesDbRoutes = require('./routes/talhoes-db.routes');
+const ocorrenciasRoutes = require('./routes/ocorrencias.routes');
+// const inspecoesRoutes = require('./routes/inspecoes.routes'); // TEMPORARIAMENTE DESATIVADO
 
-const safras = [
-  { id: '1', nome: 'Safra 2024/25', cultura: 'Soja', ano_inicio: 2024, ano_fim: 2025, status: 'em_andamento' },
-  { id: '2', nome: 'Safra 2023/24', cultura: 'Milho', ano_inicio: 2023, ano_fim: 2024, status: 'finalizada' }
-];
-
-const talhoes = [
-  { id: '1', nome: 'Talhão A1', area_hectares: 45.5, tipo_solo: 'Latossolo Vermelho', fazenda_id: '1', fazenda_nome: 'Fazenda São João', centroide: { lat: -21.123456, lng: -47.123456 } },
-  { id: '2', nome: 'Talhão A2', area_hectares: 38.0, tipo_solo: 'Argissolo', fazenda_id: '1', fazenda_nome: 'Fazenda São João', centroide: { lat: -21.234567, lng: -47.234567 } },
-  { id: '3', nome: 'Talhão B1', area_hectares: 52.0, tipo_solo: 'Latossolo Vermelho-Amarelo', fazenda_id: '2', fazenda_nome: 'Fazenda Boa Vista', centroide: { lat: -19.7166, lng: -47.8833 } }
-];
-
-const operadores = [
-  { id: '1', nome: 'João Silva', funcao: 'Tratorista', telefone: '(16) 99999-1111', ativo: true },
-  { id: '2', nome: 'Maria Santos', funcao: 'Aplicadora', telefone: '(16) 99999-2222', ativo: true }
-];
-
-const equipamentos = [
-  { id: '1', nome: 'Trator John Deere 8R', tipo: 'Trator', marca: 'John Deere', ano: 2022, status: 'disponivel' },
-  { id: '2', nome: 'Pulverizador Autopropelido', tipo: 'Pulverizador', marca: 'Stara', ano: 2021, status: 'em_uso' }
-];
-
-const atividades = [
-  { id: '1', descricao: 'Aplicação de Herbicida', data: '2025-02-08', tipo: 'Aplicação', status: 'concluida', talhao_nome: 'Talhão A1' },
-  { id: '2', descricao: 'Plantio de Soja', data: '2025-02-10', tipo: 'Plantio', status: 'em_andamento', talhao_nome: 'Talhão A2' }
-];
-
-const ocorrencias = [
-  { 
-    id: '1', 
-    tipo: 'Lagarta', 
-    categoria: 'praga',
-    titulo: 'Infestação leve na área norte',
-    descricao: 'Detectado: Lagarta Helicoverpa armigera (91% confiança). Recomendação: Aplicar inseticida específico nas próximas 48h.',
-    data: '2025-02-05', 
-    gravidade: 'media', 
-    status: 'aberta', 
-    talhao_nome: 'Talhão A1',
-    latitude: -21.123456,
-    longitude: -47.123456,
-    ia_analise: 'Lagarta Helicoverpa armigera (91% confiança)'
-  },
-  { 
-    id: '2', 
-    tipo: 'Ferrugem', 
-    categoria: 'doenca',
-    titulo: 'Manchas identificadas no limbo foliar',
-    descricao: 'Detectado: Ferrugem Asiática (87% confiança). Recomendação: Monitorar e aplicar fungicida preventivo.',
-    data: '2025-02-07', 
-    gravidade: 'baixa', 
-    status: 'resolvida', 
-    talhao_nome: 'Talhão A2',
-    latitude: -21.234567,
-    longitude: -47.234567,
-    ia_analise: 'Ferrugem Asiática (87% confiança)'
-  }
-];
-
-const insumos = [
-  { id: '1', nome: 'Glifosato', tipo: 'Herbicida', quantidade: 500, unidade: 'L', preco_medio: 45.50, estoque_minimo: 100 },
-  { id: '2', nome: 'Semente Soja', tipo: 'Semente', quantidade: 80, unidade: 'kg', preco_medio: 120.00, estoque_minimo: 50 }
-];
-
-const despesas = [
-  { id: '1', descricao: 'Compra de combustível', valor: 2500.00, data: '2025-02-01', categoria: 'Combustível', talhao_nome: 'Geral' },
-  { id: '2', descricao: 'Manutenção trator', valor: 800.00, data: '2025-02-03', categoria: 'Manutenção', talhao_nome: 'Talhão A1' }
-];
+// Models para acesso direto (se necessário)
+const { 
+  Fazenda, Talhao, Safra, Ocorrencia, 
+  Operador, Equipamento, Insumo, Despesa, Atividade 
+} = require('./models/db.models');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -119,226 +59,170 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Serve arquivos estáticos do frontend
 app.use(express.static(FRONTEND_BUILD_PATH));
 
-// Health check
-app.get('/health', (req, res) => {
+// ============================================
+// HEALTH CHECK
+// ============================================
+app.get('/health', async (req, res) => {
+  // Testar conexão com banco
+  const dbStatus = await testConnection();
+  
   res.json({ 
-    status: 'OK', 
+    status: dbStatus ? 'OK' : 'DEGRADED', 
     timestamp: new Date().toISOString(),
     servico: 'AgroFocus API',
-    versao: '1.2.0',
+    versao: '2.0.0 (PostgreSQL)',
+    database: dbStatus ? 'connected' : 'disconnected',
     endpoints: {
+      auth: '/api/auth',
+      fazendas: '/api/fazendas',
+      talhoes: '/api/talhoes',
+      safras: '/api/safras',
+      ocorrencias: '/api/ocorrencias',
+      inspecoes: '/api/inspecoes',
       indices: '/api/indices',
       ndvi: '/api/ndvi/:talhaoId',
-      ndre: '/api/ndre/:talhaoId',
-      msavi: '/api/msavi/:talhaoId',
       produtividade: '/api/produtividade',
-      meteorologia: '/api/meteorologia',
-      delineamento: '/api/talhoes/delinear-auto'
+      meteorologia: '/api/meteorologia'
     }
   });
 });
 
-// Rotas de autenticação e fazendas
+// ============================================
+// ROTAS DE AUTENTICAÇÃO
+// ============================================
 app.use('/api/auth', authRoutes);
 
-// Importar dados e funções do auth
-const { 
-  getFazendasUsuario, 
-  getPermissaoFazenda,
-  PERMISSOES,
-  fazendas: fazendasAuth,
-  permissoesFazendas 
-} = require('./routes/auth.routes');
+// ============================================
+// ROTAS COM POSTGRESQL
+// ============================================
 
-// Rotas de fazendas (protegidas por autenticação)
-app.get('/api/fazendas', authMiddleware, (req, res) => {
-  const fazendasUsuario = getFazendasUsuario(req.usuario.id);
-  res.json(fazendasUsuario);
-});
+// Fazendas
+app.use('/api/fazendas', authMiddleware, fazendasRoutes);
 
-app.post('/api/fazendas', authMiddleware, (req, res) => {
-  const { nome, municipio, estado, area_total, car } = req.body;
-  
-  if (!nome) {
-    return res.status(400).json({ sucesso: false, erro: 'Nome da fazenda é obrigatório' });
+// Talhões (novas rotas com PostgreSQL)
+app.use('/api/talhoes-db', authMiddleware, talhoesDbRoutes);
+
+// Ocorrências
+app.use('/api/ocorrencias', authMiddleware, ocorrenciasRoutes);
+
+// Inspeções (TEMPORARIAMENTE DESATIVADO)
+// app.use('/api/inspecoes', authMiddleware, inspecoesRoutes);
+
+// ============================================
+// ROTAS DE CADASTROS (PostgreSQL)
+// ============================================
+
+// Safras
+app.get('/api/safras', authMiddleware, async (req, res) => {
+  try {
+    const { fazenda_id } = req.query;
+    const safras = await Safra.findAll({ fazenda_id });
+    res.json(safras);
+  } catch (err) {
+    console.error('Erro ao listar safras:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
-  
-  const novaFazenda = {
-    id: Date.now().toString(),
-    nome,
-    municipio: municipio || '',
-    estado: estado || '',
-    area_total: area_total || 0,
-    car: car || '',
-    proprietario_id: req.usuario.id,
-    minha_permissao: PERMISSOES.DONO,
-    compartilhada: false,
-    created_at: new Date().toISOString()
-  };
-  
-  fazendasAuth.push(novaFazenda);
-  res.status(201).json(novaFazenda);
 });
 
-// Middleware para verificar permissão em fazendas
-const checkFazendaPermissao = (nivelMinimo) => {
-  return (req, res, next) => {
-    const { fazendaId } = req.params;
-    const permissao = getPermissaoFazenda(req.usuario.id, fazendaId);
+app.post('/api/safras', authMiddleware, async (req, res) => {
+  try {
+    const { nome, cultura, ano_inicio, ano_fim, status, fazenda_id, data_inicio, data_fim } = req.body;
     
-    if (!permissao) {
-      return res.status(403).json({ sucesso: false, erro: 'Acesso negado à fazenda' });
+    if (!nome || !fazenda_id) {
+      return res.status(400).json({ sucesso: false, erro: 'Nome e fazenda são obrigatórios' });
     }
     
-    const niveis = [PERMISSOES.VISUALIZADOR, PERMISSOES.OPERADOR, PERMISSOES.GERENTE, PERMISSOES.DONO];
-    const nivelUsuario = niveis.indexOf(permissao);
-    const nivelRequerido = niveis.indexOf(nivelMinimo);
+    const safra = await Safra.create({
+      nome, cultura, ano_inicio, ano_fim, status, fazenda_id, data_inicio, data_fim
+    });
     
-    if (nivelUsuario < nivelRequerido) {
-      return res.status(403).json({ sucesso: false, erro: 'Permissão insuficiente' });
-    }
-    
-    req.permissaoFazenda = permissao;
-    next();
-  };
-};
-
-// Rotas de cadastros (filtradas por fazenda do usuário)
-app.get('/api/safras', authMiddleware, (req, res) => {
-  // TODO: Filtrar safras pelas fazendas que o usuário tem acesso
-  res.json(safras);
-});
-
-app.get('/api/talhoes', authMiddleware, (req, res) => {
-  // TODO: Filtrar talhões pelas fazendas que o usuário tem acesso
-  res.json(talhoes);
-});
-
-app.get('/api/operadores', authMiddleware, (req, res) => {
-  res.json(operadores);
-});
-
-app.get('/api/equipamentos', authMiddleware, (req, res) => {
-  res.json(equipamentos);
-});
-
-// Rotas operacionais
-app.get('/api/atividades', authMiddleware, (req, res) => {
-  res.json(atividades);
-});
-
-app.get('/api/ocorrencias', authMiddleware, (req, res) => {
-  res.json(ocorrencias);
-});
-
-app.post('/api/ocorrencias', authMiddleware, (req, res) => {
-  const { 
-    tipo, categoria, titulo, descricao, severidade, 
-    latitude, longitude, fotos, talhao_id, fazenda_id,
-    talhao_nome, fazenda_nome, area_afetada, metodo_analise, status
-  } = req.body;
-  
-  // Buscar nomes se não foram enviados
-  const talhao = talhoes.find(t => t.id === talhao_id);
-  const fazenda = fazendas.find(f => f.id === (fazenda_id || talhao?.fazenda_id));
-  
-  const novaOcorrencia = {
-    id: Date.now().toString(),
-    tipo: tipo || 'Outro',
-    categoria: categoria || 'outro',
-    titulo: titulo || '',
-    descricao: descricao || '',
-    data: new Date().toISOString(),
-    severidade: severidade || 'media',
-    status: status || 'aberta',
-    talhao_id: talhao_id || null,
-    talhao_nome: talhao_nome || talhao?.nome || 'Sem talhão',
-    fazenda_id: fazenda_id || talhao?.fazenda_id || null,
-    fazenda_nome: fazenda_nome || fazenda?.nome || 'Sem fazenda',
-    operador_nome: req.usuario?.nome || 'Usuário',
-    latitude: latitude || null,
-    longitude: longitude || null,
-    area_afetada: area_afetada || null,
-    metodo_analise: metodo_analise || 'manual',
-    foto_url_1: fotos?.[0] || null,
-    foto_url_2: fotos?.[1] || null,
-    foto_url_3: fotos?.[2] || null
-  };
-  
-  ocorrencias.unshift(novaOcorrencia);
-  
-  // Se for análise por especialista, notificar
-  if (metodo_analise === 'especialista') {
-    console.log(`🔔 NOTIFICAÇÃO: Nova inspeção pendente de análise - ID ${novaOcorrencia.id}`);
-    console.log(`   Talhão: ${novaOcorrencia.talhao_nome}`);
-    console.log(`   Fotos: ${fotos?.length || 0}`);
+    res.status(201).json({ sucesso: true, safra });
+  } catch (err) {
+    console.error('Erro ao criar safra:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
-  
-  res.status(201).json(novaOcorrencia);
 });
 
-// Rota de notificações para inspeções pendentes
-const notificacoesPendentes = [];
-
-app.post('/api/notificacoes/inspecao-pendente', authMiddleware, (req, res) => {
-  const { mensagem, talhao, fotos } = req.body;
-  
-  const notificacao = {
-    id: Date.now().toString(),
-    tipo: 'inspecao_pendente',
-    mensagem,
-    talhao,
-    fotos,
-    usuario_id: req.usuario.id,
-    usuario_nome: req.usuario.nome,
-    data: new Date().toISOString(),
-    lida: false
-  };
-  
-  notificacoesPendentes.push(notificacao);
-  
-  // Log para debug
-  console.log(`🔔 NOTIFICAÇÃO ESPECIALISTA:`);
-  console.log(`   De: ${req.usuario.nome}`);
-  console.log(`   Talhão: ${talhao}`);
-  console.log(`   Fotos: ${fotos}`);
-  console.log(`   Data: ${new Date().toLocaleString('pt-BR')}`);
-  
-  res.json({ sucesso: true, notificacao });
+// Operadores
+app.get('/api/operadores', authMiddleware, async (req, res) => {
+  try {
+    const { fazenda_id } = req.query;
+    const operadores = await Operador.findAll({ fazenda_id });
+    res.json(operadores);
+  } catch (err) {
+    console.error('Erro ao listar operadores:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
 });
 
-app.get('/api/notificacoes', authMiddleware, (req, res) => {
-  res.json(notificacoesPendentes.filter(n => !n.lida));
+// Equipamentos
+app.get('/api/equipamentos', authMiddleware, async (req, res) => {
+  try {
+    const { fazenda_id } = req.query;
+    const equipamentos = await Equipamento.findAll({ fazenda_id });
+    res.json(equipamentos);
+  } catch (err) {
+    console.error('Erro ao listar equipamentos:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
 });
 
-app.get('/api/estoque/insumos', authMiddleware, (req, res) => {
-  res.json(insumos);
+// Atividades
+app.get('/api/atividades', authMiddleware, async (req, res) => {
+  try {
+    const { fazenda_id, talhao_id } = req.query;
+    const atividades = await Atividade.findAll({ fazenda_id, talhao_id });
+    res.json(atividades);
+  } catch (err) {
+    console.error('Erro ao listar atividades:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
 });
 
-app.get('/api/financeiro/despesas', authMiddleware, (req, res) => {
-  res.json(despesas);
+// Insumos
+app.get('/api/estoque/insumos', authMiddleware, async (req, res) => {
+  try {
+    const { fazenda_id } = req.query;
+    const insumos = await Insumo.findAll({ fazenda_id });
+    res.json(insumos);
+  } catch (err) {
+    console.error('Erro ao listar insumos:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
 });
 
-// Rotas de IA (Vision API)
-const iaRoutes = require('./routes/ia.routes');
-app.use('/api/ia', authMiddleware, iaRoutes);
+// Despesas
+app.get('/api/financeiro/despesas', authMiddleware, async (req, res) => {
+  try {
+    const { fazenda_id, talhao_id } = req.query;
+    const despesas = await Despesa.findAll({ fazenda_id, talhao_id });
+    res.json(despesas);
+  } catch (err) {
+    console.error('Erro ao listar despesas:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
 
-// Rotas de Inspeção por Especialista (Workflow Híbrido)
-const inspecaoEspecialistaRoutes = require('./routes/inspecao-especialista.routes');
-app.use('/api/inspecoes', authMiddleware, inspecaoEspecialistaRoutes);
-
-// Rotas originais
+// ============================================
+// ROTAS ORIGINAIS (mantidas para compatibilidade)
+// ============================================
 app.use('/api/talhoes', talhoesRoutes);
 app.use('/api', indicesRoutes);
 app.use('/api', produtividadeRoutes);
 app.use('/api/meteorologia', meteorologiaRoutes);
 
-// Rota raiz - serve o frontend
+// Rotas de IA (Vision API)
+const iaRoutes = require('./routes/ia.routes');
+app.use('/api/ia', authMiddleware, iaRoutes);
+
+// ============================================
+// ROTA RAIZ
+// ============================================
 app.get('/', (req, res) => {
   res.sendFile(path.join(FRONTEND_BUILD_PATH, 'index.html'));
 });
 
-// API 404 handler - só responde JSON para rotas /api/*
+// API 404 handler
 app.use('/api/*', (req, res) => {
   res.status(404).json({
     sucesso: false,
@@ -362,35 +246,76 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+// Iniciar servidor
+app.listen(PORT, async () => {
   console.log(`
-🌾 AgroFocus API v1.2.0
-========================
+🌾 AgroFocus API v2.0.0 (PostgreSQL)
+=====================================
 ✅ Servidor rodando na porta ${PORT}
 📚 Documentação: http://localhost:${PORT}/
+`);
 
+  // Testar conexão com banco ao iniciar
+  console.log('🔄 Testando conexão com PostgreSQL...');
+  const dbOk = await testConnection();
+  
+  if (dbOk) {
+    console.log('✅ Banco de dados conectado e pronto!');
+  } else {
+    console.log('⚠️  Aviso: Banco de dados não disponível');
+    console.log('   Configure DATABASE_URL no arquivo .env');
+  }
+  
+  console.log(`
 Endpoints disponíveis:
-  Índices:
+  Autenticação:
+    POST /api/auth/login
+    POST /api/auth/registro
+    GET  /api/auth/minhas-fazendas
+  
+  Cadastros (PostgreSQL):
+    GET    /api/fazendas
+    POST   /api/fazendas
+    GET    /api/fazendas/:id
+    PUT    /api/fazendas/:id
+    DELETE /api/fazendas/:id
+    GET    /api/fazendas/:id/talhoes
+    
+    GET    /api/talhoes-db
+    POST   /api/talhoes-db
+    GET    /api/talhoes-db/:id
+    GET    /api/talhoes-db/:id/geojson
+    PUT    /api/talhoes-db/:id
+    DELETE /api/talhoes-db/:id
+    
+    GET    /api/safras
+    POST   /api/safras
+    GET    /api/operadores
+    GET    /api/equipamentos
+  
+  Ocorrências:
+    GET    /api/ocorrencias
+    POST   /api/ocorrencias
+    GET    /api/ocorrencias/:id
+    PUT    /api/ocorrencias/:id
+    DELETE /api/ocorrencias/:id
+  
+  Inspeções:
+    GET    /api/inspecoes
+    POST   /api/inspecoes/pendentes
+    GET    /api/inspecoes/pendentes
+    POST   /api/inspecoes/pendentes/:id/analisar
+    GET    /api/inspecoes/:id/status
+  
+  Índices (GEE):
     GET /api/indices
     GET /api/ndvi/:talhaoId
-    GET /api/ndre/:talhaoId
-    GET /api/msavi/:talhaoId
-    GET /api/comparar/:talhaoId
   
   Produtividade:
     GET /api/produtividade/estimar/:talhaoId
-    GET /api/produtividade/culturas
-    GET /api/produtividade/historico/:talhaoId
   
   Meteorologia:
     GET /api/meteorologia/gdd/:talhaoId
-    GET /api/meteorologia/gdd/culturas
-    GET /api/meteorologia/clima-atual
-    GET /api/meteorologia/previsao
-  
-  Delineamento:
-    POST /api/talhoes/delinear-auto
-    GET  /api/talhoes/algoritmos
   `);
 });
 

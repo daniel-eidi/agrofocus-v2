@@ -1,5 +1,9 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import NotificationBadge from './components/NotificationBadge'
+import InstallButton from './components/InstallButton'
+import OfflineStatus from './components/OfflineStatus'
+import { usePWA } from './hooks/usePWA'
 
 // Páginas públicas
 import Login from './pages/Login'
@@ -23,6 +27,7 @@ import Financeiro from './pages/Financeiro'
 import Meteorologia from './pages/Meteorologia'
 import Produtividade from './pages/Produtividade'
 import Delineamento from './pages/Delineamento'
+import PWADiagnostics from './pages/PWADiagnostics'
 
 // Componente para proteger rotas
 function RotaProtegida({ children }: { children: React.ReactNode }) {
@@ -39,31 +44,84 @@ function RotaProtegida({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Badge de PWA instalado
+function PWABadge() {
+  const { state } = usePWA()
+  
+  if (state.isInstalled) {
+    return (
+      <span 
+        title="App instalado - funciona offline!"
+        style={{ 
+          fontSize: 12, 
+          opacity: 0.9,
+          background: 'rgba(255,255,255,0.2)',
+          padding: '2px 8px',
+          borderRadius: 12
+        }}
+      >
+        📲 App
+      </span>
+    )
+  }
+  
+  return null
+}
+
 // Layout com navegação
 function LayoutAutenticado() {
   const { usuario, logout } = useAuth()
+  const { state } = usePWA()
+  
+  // Ajusta padding se houver banner offline
+  const hasOfflineBanner = state.isOffline || state.inspecoesPendentes > 0
   
   return (
-    <div style={{fontFamily: 'system-ui, sans-serif', minHeight: '100vh', background: '#f3f4f6'}}>
+    <div style={{
+      fontFamily: 'system-ui, sans-serif', 
+      minHeight: '100vh', 
+      background: '#f3f4f6',
+      paddingTop: hasOfflineBanner ? 50 : 0
+    }}>
+      <OfflineStatus />
+      
       <nav style={{
         background: '#166534', 
         color: 'white', 
         padding: '15px 20px', 
         position: 'sticky', 
-        top: 0, 
+        top: hasOfflineBanner ? 44 : 0, 
         zIndex: 100,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link to="/" style={{color: 'white', textDecoration: 'none', fontSize: 24, fontWeight: 'bold'}}>
             🌱 AgroFocus
           </Link>
+          <PWABadge />
         </div>
         
         {usuario && (
-          <div style={{display: 'flex', alignItems: 'center', gap: 15}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+            {/* Status offline/online */}
+            {state.isOffline && (
+              <span 
+                title="Modo offline"
+                style={{ 
+                  fontSize: 14,
+                  padding: '4px 8px',
+                  background: '#f59e0b',
+                  borderRadius: 4
+                }}
+              >
+                📡 Offline
+              </span>
+            )}
+            
+            <NotificationBadge />
+            <InstallButton />
             <span style={{fontSize: 14}}>👤 {usuario.nome}</span>
             <button 
               onClick={logout}
@@ -130,6 +188,7 @@ const Dashboard = () => (
         { path: '/meteorologia', icon: '🌡️', title: 'Meteorologia', desc: 'GDD/Previsão' },
         { path: '/produtividade', icon: '🤖', title: 'Produtividade', desc: 'ML' },
         { path: '/delineamento', icon: '📐', title: 'Delineamento', desc: 'Zonas' },
+        { path: '/pwa-status', icon: '📲', title: 'Status PWA', desc: 'Diagnóstico offline' },
       ].map(item => (
         <Link key={item.path} to={item.path} style={{textDecoration: 'none'}}>
           <div style={{
@@ -175,6 +234,7 @@ function App() {
         <Route path="/meteorologia" element={<RotaProtegida><Meteorologia /></RotaProtegida>} />
         <Route path="/produtividade" element={<RotaProtegida><Produtividade /></RotaProtegida>} />
         <Route path="/delineamento" element={<RotaProtegida><Delineamento /></RotaProtegida>} />
+        <Route path="/pwa-status" element={<RotaProtegida><PWADiagnostics /></RotaProtegida>} />
       </Routes>
     </AuthProvider>
   )

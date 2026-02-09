@@ -1,18 +1,16 @@
-FROM python:3.11-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Instalar dependências
+COPY package*.json ./
+RUN npm install
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
+# Copiar código fonte
 COPY src/ ./src/
 
-EXPOSE 8000
+# Expor porta
+EXPOSE 3002
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando padrão
+CMD ["npm", "start"]

@@ -39,6 +39,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
+  const registrarPushSubscription = async (userId: string, token: string) => {
+    try {
+      // Verificar se já existe subscription
+      const registration = await navigator.serviceWorker.ready;
+      const existingSubscription = await registration.pushManager.getSubscription();
+      
+      if (existingSubscription) {
+        // Enviar subscription existente para o backend
+        await fetch(`${API_URL}/api/notificacoes/subscribe`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            subscription: existingSubscription.toJSON(),
+            usuario_id: userId
+          })
+        });
+        console.log('🔔 Subscription push registrada para usuário:', userId);
+      }
+    } catch (err) {
+      console.error('Erro ao registrar push subscription:', err);
+      // Não bloqueia o login se falhar
+    }
+  };
+
   const login = async (email: string, senha: string) => {
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
@@ -54,6 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(data.token)
         localStorage.setItem('agrofocus_token', data.token)
         localStorage.setItem('agrofocus_usuario', JSON.stringify(data.usuario))
+        
+        // Registrar subscription push após login bem-sucedido
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          await registrarPushSubscription(data.usuario.id, data.token);
+        }
+        
         return { sucesso: true }
       } else {
         return { sucesso: false, erro: data.erro || 'Erro ao fazer login' }

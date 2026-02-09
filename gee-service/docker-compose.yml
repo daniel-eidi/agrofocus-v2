@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  gee-service:
+    build: .
+    container_name: gee-python-service
+    ports:
+      - "5001:5001"
+    volumes:
+      # Monta as credenciais do GEE
+      - /home/clawdbot_user/clawd/booster_agro/backend/config/gee-credentials.json:/app/credentials.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+    restart: unless-stopped
+    networks:
+      - agrofocus-network
+
+networks:
+  agrofocus-network:
+    external: true

@@ -1,96 +1,29 @@
+/**
+ * AgroFocus - Auth Routes (PostgreSQL)
+ * Rotas de autenticação e gerenciamento de fazendas
+ */
+
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-// JWT Secret (em produção, usar variável de ambiente)
+const { Usuario, Fazenda, Permissao } = require('../models/db.models');
+
+// JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'agrofocus-secret-key-2024';
 const JWT_EXPIRES_IN = '7d';
 
 // Tipos de permissão
 const PERMISSOES = {
-  DONO: 'dono',           // Controle total, pode excluir fazenda e gerenciar permissões
-  GERENTE: 'gerente',     // Editar dados, criar safras, talhões, gerenciar operadores
-  OPERADOR: 'operador',   // Registrar atividades, ocorrências, usar equipamentos
-  VISUALIZADOR: 'visualizador'  // Apenas visualizar dados
+  DONO: 'dono',
+  GERENTE: 'gerente',
+  OPERADOR: 'operador',
+  VISUALIZADOR: 'visualizador'
 };
 
-// Dados mockados de usuários - senha: admin123
-// Hash gerado com bcrypt.hashSync('admin123', 10)
-const SENHA_PADRAO_HASH = '$2b$10$Mee.5cGtcKmyXZe75/tQd.LRmUXa3d4mjRICssstn4NnL0eIrElcm';
-
-let usuarios = [
-  {
-    id: '1',
-    email: 'admin@agrofocus.com',
-    senha_hash: SENHA_PADRAO_HASH,
-    nome: 'Administrador',
-    telefone: '(16) 99999-0000',
-    perfil: 'admin',
-    ativo: true,
-    avatar_url: null,
-    ultimo_acesso: new Date().toISOString(),
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '2',
-    email: 'gerente@agrofocus.com',
-    senha_hash: SENHA_PADRAO_HASH,
-    nome: 'João Gerente',
-    telefone: '(16) 99999-1111',
-    perfil: 'gerente',
-    ativo: true,
-    avatar_url: null,
-    ultimo_acesso: null,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '3',
-    email: 'operador@agrofocus.com',
-    senha_hash: SENHA_PADRAO_HASH,
-    nome: 'Maria Operadora',
-    telefone: '(16) 99999-2222',
-    perfil: 'operador',
-    ativo: true,
-    avatar_url: null,
-    ultimo_acesso: null,
-    created_at: new Date().toISOString()
-  }
-];
-
-// Fazendas com proprietário
-let fazendas = [
-  { 
-    id: '1', 
-    nome: 'Fazenda São João', 
-    municipio: 'Ribeirão Preto', 
-    estado: 'SP', 
-    area_total: 150.5, 
-    car: 'SP-123456',
-    proprietario_id: '1',  // Dono é o admin
-    created_at: new Date().toISOString()
-  },
-  { 
-    id: '2', 
-    nome: 'Fazenda Boa Vista', 
-    municipio: 'Uberaba', 
-    estado: 'MG', 
-    area_total: 320.0, 
-    car: 'MG-789012',
-    proprietario_id: '2',  // Dono é o gerente
-    created_at: new Date().toISOString()
-  }
-];
-
-// Permissões de compartilhamento
-let permissoesFazendas = [
-  { id: '1', fazenda_id: '1', usuario_id: '2', permissao: PERMISSOES.GERENTE, convidado_por: '1', created_at: new Date().toISOString() },
-  { id: '2', fazenda_id: '1', usuario_id: '3', permissao: PERMISSOES.OPERADOR, convidado_por: '1', created_at: new Date().toISOString() },
-  { id: '3', fazenda_id: '2', usuario_id: '1', permissao: PERMISSOES.VISUALIZADOR, convidado_por: '2', created_at: new Date().toISOString() }
-];
-
 // Middleware de autenticação
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -107,44 +40,13 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Função para verificar permissão do usuário em uma fazenda
-function getPermissaoFazenda(usuarioId, fazendaId) {
-  // Verificar se é o dono
-  const fazenda = fazendas.find(f => f.id === fazendaId);
-  if (fazenda && fazenda.proprietario_id === usuarioId) {
-    return PERMISSOES.DONO;
-  }
-  
-  // Verificar permissão de compartilhamento
-  const permissao = permissoesFazendas.find(
-    p => p.fazenda_id === fazendaId && p.usuario_id === usuarioId
-  );
-  
-  return permissao?.permissao || null;
+async function getPermissaoFazenda(usuarioId, fazendaId) {
+  return await Permissao.getPermissao(usuarioId, fazendaId);
 }
 
 // Função para obter todas as fazendas que o usuário tem acesso
-function getFazendasUsuario(usuarioId) {
-  // Fazendas onde é dono
-  const fazendasDono = fazendas.filter(f => f.proprietario_id === usuarioId);
-  
-  // Fazendas compartilhadas
-  const permissoes = permissoesFazendas.filter(p => p.usuario_id === usuarioId);
-  const fazendasCompartilhadas = permissoes.map(p => {
-    const fazenda = fazendas.find(f => f.id === p.fazenda_id);
-    if (fazenda) {
-      return {
-        ...fazenda,
-        minha_permissao: p.permissao,
-        compartilhada: true
-      };
-    }
-    return null;
-  }).filter(Boolean);
-  
-  return [
-    ...fazendasDono.map(f => ({ ...f, minha_permissao: PERMISSOES.DONO, compartilhada: false })),
-    ...fazendasCompartilhadas
-  ];
+async function getFazendasUsuario(usuarioId) {
+  return await Fazenda.findByUsuario(usuarioId);
 }
 
 // Registro de novo usuário
@@ -159,7 +61,7 @@ router.post('/registro', async (req, res) => {
       });
     }
     
-    const usuarioExistente = usuarios.find(u => u.email === email);
+    const usuarioExistente = await Usuario.findByEmail(email);
     if (usuarioExistente) {
       return res.status(400).json({ 
         sucesso: false, 
@@ -169,20 +71,13 @@ router.post('/registro', async (req, res) => {
     
     const senhaHash = await bcrypt.hash(senha, 10);
     
-    const novoUsuario = {
-      id: Date.now().toString(),
+    const novoUsuario = await Usuario.create({
       email,
       senha_hash: senhaHash,
       nome,
       telefone: telefone || null,
-      perfil: 'operador',
-      ativo: true,
-      avatar_url: null,
-      ultimo_acesso: null,
-      created_at: new Date().toISOString()
-    };
-    
-    usuarios.push(novoUsuario);
+      perfil: 'operador'
+    });
     
     const token = jwt.sign(
       { id: novoUsuario.id, email: novoUsuario.email, nome: novoUsuario.nome, perfil: novoUsuario.perfil },
@@ -220,7 +115,7 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    const usuario = usuarios.find(u => u.email === email && u.ativo);
+    const usuario = await Usuario.findByEmail(email);
     
     if (!usuario) {
       return res.status(401).json({ 
@@ -237,7 +132,7 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    usuario.ultimo_acesso = new Date().toISOString();
+    await Usuario.updateUltimoAcesso(usuario.id);
     
     const token = jwt.sign(
       { id: usuario.id, email: usuario.email, nome: usuario.nome, perfil: usuario.perfil },
@@ -264,35 +159,37 @@ router.post('/login', async (req, res) => {
 });
 
 // Listar fazendas do usuário (próprias + compartilhadas)
-router.get('/minhas-fazendas', authMiddleware, (req, res) => {
-  const fazendasUsuario = getFazendasUsuario(req.usuario.id);
-  res.json({
-    sucesso: true,
-    fazendas: fazendasUsuario
-  });
+router.get('/minhas-fazendas', authMiddleware, async (req, res) => {
+  try {
+    const fazendasUsuario = await getFazendasUsuario(req.usuario.id);
+    res.json({
+      sucesso: true,
+      fazendas: fazendasUsuario
+    });
+  } catch (err) {
+    console.error('Erro ao listar fazendas:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
 });
 
 // Criar nova fazenda (usuário vira dono automaticamente)
 router.post('/fazendas', authMiddleware, async (req, res) => {
   try {
-    const { nome, municipio, estado, area_total, car } = req.body;
+    const { nome, municipio, estado, area_total, car, geometria } = req.body;
     
     if (!nome) {
       return res.status(400).json({ sucesso: false, erro: 'Nome da fazenda é obrigatório' });
     }
     
-    const novaFazenda = {
-      id: Date.now().toString(),
+    const novaFazenda = await Fazenda.create({
       nome,
       municipio: municipio || '',
       estado: estado || '',
       area_total: area_total || 0,
       car: car || '',
       proprietario_id: req.usuario.id,
-      created_at: new Date().toISOString()
-    };
-    
-    fazendas.push(novaFazenda);
+      geometria
+    });
     
     res.status(201).json({
       sucesso: true,
@@ -310,151 +207,145 @@ router.post('/fazendas', authMiddleware, async (req, res) => {
 });
 
 // Compartilhar fazenda com outro usuário
-router.post('/fazendas/:fazendaId/compartilhar', authMiddleware, (req, res) => {
-  const { fazendaId } = req.params;
-  const { email_usuario, permissao } = req.body;
-  
-  // Verificar se a fazenda existe
-  const fazenda = fazendas.find(f => f.id === fazendaId);
-  if (!fazenda) {
-    return res.status(404).json({ sucesso: false, erro: 'Fazenda não encontrada' });
-  }
-  
-  // Verificar se o usuário é dono ou gerente
-  const permissaoUsuario = getPermissaoFazenda(req.usuario.id, fazendaId);
-  if (permissaoUsuario !== PERMISSOES.DONO && permissaoUsuario !== PERMISSOES.GERENTE) {
-    return res.status(403).json({ sucesso: false, erro: 'Acesso negado' });
-  }
-  
-  // Gerente não pode dar permissão de dono
-  if (permissaoUsuario === PERMISSOES.GERENTE && permissao === PERMISSOES.DONO) {
-    return res.status(403).json({ sucesso: false, erro: 'Gerente não pode conceder permissão de dono' });
-  }
-  
-  // Buscar usuário a ser convidado
-  const usuarioConvidado = usuarios.find(u => u.email === email_usuario);
-  if (!usuarioConvidado) {
-    return res.status(404).json({ sucesso: false, erro: 'Usuário não encontrado' });
-  }
-  
-  // Verificar se já tem permissão
-  const permissaoExistente = permissoesFazendas.find(
-    p => p.fazenda_id === fazendaId && p.usuario_id === usuarioConvidado.id
-  );
-  
-  if (permissaoExistente) {
-    // Atualizar permissão
-    permissaoExistente.permissao = permissao;
-    permissaoExistente.updated_at = new Date().toISOString();
-  } else {
-    // Criar nova permissão
-    permissoesFazendas.push({
-      id: Date.now().toString(),
-      fazenda_id: fazendaId,
+router.post('/fazendas/:fazendaId/compartilhar', authMiddleware, async (req, res) => {
+  try {
+    const { fazendaId } = req.params;
+    const { email_usuario, permissao } = req.body;
+    
+    // Verificar se a fazenda existe
+    const fazenda = await Fazenda.findById(fazendaId);
+    if (!fazenda) {
+      return res.status(404).json({ sucesso: false, erro: 'Fazenda não encontrada' });
+    }
+    
+    // Verificar se o usuário é dono ou gerente
+    const permissaoUsuario = await getPermissaoFazenda(req.usuario.id, fazendaId);
+    if (permissaoUsuario !== PERMISSOES.DONO && permissaoUsuario !== PERMISSOES.GERENTE) {
+      return res.status(403).json({ sucesso: false, erro: 'Acesso negado' });
+    }
+    
+    // Gerente não pode dar permissão de dono
+    if (permissaoUsuario === PERMISSOES.GERENTE && permissao === PERMISSOES.DONO) {
+      return res.status(403).json({ sucesso: false, erro: 'Gerente não pode conceder permissão de dono' });
+    }
+    
+    // Buscar usuário a ser convidado
+    const usuarioConvidado = await Usuario.findByEmail(email_usuario);
+    if (!usuarioConvidado) {
+      return res.status(404).json({ sucesso: false, erro: 'Usuário não encontrado' });
+    }
+    
+    // Criar/atualizar permissão
+    await Permissao.create({
+      fazenda_id: parseInt(fazendaId),
       usuario_id: usuarioConvidado.id,
       permissao: permissao,
-      convidado_por: req.usuario.id,
-      created_at: new Date().toISOString()
+      convidado_por: req.usuario.id
     });
+    
+    res.json({
+      sucesso: true,
+      mensagem: `Fazenda compartilhada com ${usuarioConvidado.nome} como ${permissao}`
+    });
+  } catch (err) {
+    console.error('Erro ao compartilhar fazenda:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
-  
-  res.json({
-    sucesso: true,
-    mensagem: `Fazenda compartilhada com ${usuarioConvidado.nome} como ${permissao}`
-  });
 });
 
 // Listar compartilhamentos de uma fazenda
-router.get('/fazendas/:fazendaId/compartilhamentos', authMiddleware, (req, res) => {
-  const { fazendaId } = req.params;
-  
-  const fazenda = fazendas.find(f => f.id === fazendaId);
-  if (!fazenda) {
-    return res.status(404).json({ sucesso: false, erro: 'Fazenda não encontrada' });
-  }
-  
-  const permissaoUsuario = getPermissaoFazenda(req.usuario.id, fazendaId);
-  if (!permissaoUsuario) {
-    return res.status(403).json({ sucesso: false, erro: 'Acesso negado' });
-  }
-  
-  const compartilhamentos = permissoesFazendas
-    .filter(p => p.fazenda_id === fazendaId)
-    .map(p => {
-      const usuario = usuarios.find(u => u.id === p.usuario_id);
-      const convidadoPor = usuarios.find(u => u.id === p.convidado_por);
-      return {
-        id: p.id,
-        usuario: usuario ? { id: usuario.id, nome: usuario.nome, email: usuario.email } : null,
-        permissao: p.permissao,
-        convidado_por: convidadoPor ? { id: convidadoPor.id, nome: convidadoPor.nome } : null,
-        created_at: p.created_at
-      };
+router.get('/fazendas/:fazendaId/compartilhamentos', authMiddleware, async (req, res) => {
+  try {
+    const { fazendaId } = req.params;
+    
+    const fazenda = await Fazenda.findById(fazendaId);
+    if (!fazenda) {
+      return res.status(404).json({ sucesso: false, erro: 'Fazenda não encontrada' });
+    }
+    
+    const permissaoUsuario = await getPermissaoFazenda(req.usuario.id, fazendaId);
+    if (!permissaoUsuario) {
+      return res.status(403).json({ sucesso: false, erro: 'Acesso negado' });
+    }
+    
+    const compartilhamentos = await Permissao.findByFazenda(fazendaId);
+    
+    res.json({
+      sucesso: true,
+      compartilhamentos: compartilhamentos.map(c => ({
+        id: c.id,
+        usuario: { id: c.usuario_id, nome: c.usuario_nome, email: c.usuario_email },
+        permissao: c.permissao,
+        convidado_por: c.convidado_por ? { id: c.convidado_por, nome: c.convidado_por_nome } : null,
+        created_at: c.created_at
+      })),
+      minha_permissao: permissaoUsuario
     });
-  
-  res.json({
-    sucesso: true,
-    compartilhamentos,
-    minha_permissao: permissaoUsuario
-  });
+  } catch (err) {
+    console.error('Erro ao listar compartilhamentos:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
 });
 
 // Remover compartilhamento
-router.delete('/fazendas/:fazendaId/compartilhar/:usuarioId', authMiddleware, (req, res) => {
-  const { fazendaId, usuarioId } = req.params;
-  
-  const fazenda = fazendas.find(f => f.id === fazendaId);
-  if (!fazenda) {
-    return res.status(404).json({ sucesso: false, erro: 'Fazenda não encontrada' });
-  }
-  
-  const permissaoUsuario = getPermissaoFazenda(req.usuario.id, fazendaId);
-  
-  // Dono pode remover qualquer um
-  // Gerente pode remover operadores e visualizadores
-  // Usuário pode remover a si mesmo
-  const podeRemover = 
-    permissaoUsuario === PERMISSOES.DONO ||
-    (permissaoUsuario === PERMISSOES.GERENTE && req.usuario.id !== usuarioId) ||
-    req.usuario.id === usuarioId;
-  
-  if (!podeRemover) {
-    return res.status(403).json({ sucesso: false, erro: 'Acesso negado' });
-  }
-  
-  const index = permissoesFazendas.findIndex(
-    p => p.fazenda_id === fazendaId && p.usuario_id === usuarioId
-  );
-  
-  if (index > -1) {
-    permissoesFazendas.splice(index, 1);
+router.delete('/fazendas/:fazendaId/compartilhar/:usuarioId', authMiddleware, async (req, res) => {
+  try {
+    const { fazendaId, usuarioId } = req.params;
+    
+    const fazenda = await Fazenda.findById(fazendaId);
+    if (!fazenda) {
+      return res.status(404).json({ sucesso: false, erro: 'Fazenda não encontrada' });
+    }
+    
+    const permissaoUsuario = await getPermissaoFazenda(req.usuario.id, fazendaId);
+    
+    // Dono pode remover qualquer um
+    // Gerente pode remover operadores e visualizadores
+    // Usuário pode remover a si mesmo
+    const podeRemover = 
+      permissaoUsuario === PERMISSOES.DONO ||
+      (permissaoUsuario === PERMISSOES.GERENTE && req.usuario.id !== usuarioId) ||
+      req.usuario.id === usuarioId;
+    
+    if (!podeRemover) {
+      return res.status(403).json({ sucesso: false, erro: 'Acesso negado' });
+    }
+    
+    await Permissao.delete(fazendaId, usuarioId);
+    
     res.json({ sucesso: true, mensagem: 'Compartilhamento removido' });
-  } else {
-    res.status(404).json({ sucesso: false, erro: 'Compartilhamento não encontrado' });
+  } catch (err) {
+    console.error('Erro ao remover compartilhamento:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
 });
 
 // Perfil do usuário logado
-router.get('/perfil', authMiddleware, (req, res) => {
-  const usuario = usuarios.find(u => u.id === req.usuario.id);
-  
-  if (!usuario) {
-    return res.status(404).json({ sucesso: false, erro: 'Usuário não encontrado' });
-  }
-  
-  res.json({
-    sucesso: true,
-    usuario: {
-      id: usuario.id,
-      email: usuario.email,
-      nome: usuario.nome,
-      telefone: usuario.telefone,
-      perfil: usuario.perfil,
-      avatar_url: usuario.avatar_url,
-      ultimo_acesso: usuario.ultimo_acesso,
-      created_at: usuario.created_at
+router.get('/perfil', authMiddleware, async (req, res) => {
+  try {
+    const usuario = await Usuario.findById(req.usuario.id);
+    
+    if (!usuario) {
+      return res.status(404).json({ sucesso: false, erro: 'Usuário não encontrado' });
     }
-  });
+    
+    res.json({
+      sucesso: true,
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        nome: usuario.nome,
+        telefone: usuario.telefone,
+        perfil: usuario.perfil,
+        avatar_url: usuario.avatar_url,
+        ultimo_acesso: usuario.ultimo_acesso,
+        created_at: usuario.created_at
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao buscar perfil:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
 });
 
 // Logout
@@ -463,22 +354,29 @@ router.post('/logout', authMiddleware, (req, res) => {
 });
 
 // Buscar usuários para convite (por email)
-router.get('/usuarios/buscar', authMiddleware, (req, res) => {
-  const { email } = req.query;
-  
-  if (!email || email.length < 3) {
-    return res.status(400).json({ sucesso: false, erro: 'Digite pelo menos 3 caracteres' });
+router.get('/usuarios/buscar', authMiddleware, async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email || email.length < 3) {
+      return res.status(400).json({ sucesso: false, erro: 'Digite pelo menos 3 caracteres' });
+    }
+    
+    // Buscar todos usuários e filtrar manualmente (em produção, usar LIKE no SQL)
+    const todosUsuarios = await Usuario.findAll();
+    const encontrados = todosUsuarios
+      .filter(u => u.email.toLowerCase().includes(email.toLowerCase()) && u.id !== req.usuario.id)
+      .map(u => ({
+        id: u.id,
+        email: u.email,
+        nome: u.nome
+      }));
+    
+    res.json({ sucesso: true, usuarios: encontrados });
+  } catch (err) {
+    console.error('Erro ao buscar usuários:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
-  
-  const encontrados = usuarios
-    .filter(u => u.email.toLowerCase().includes(email.toLowerCase()) && u.id !== req.usuario.id)
-    .map(u => ({
-      id: u.id,
-      email: u.email,
-      nome: u.nome
-    }));
-  
-  res.json({ sucesso: true, usuarios: encontrados });
 });
 
 module.exports = { 
@@ -486,7 +384,5 @@ module.exports = {
   authMiddleware, 
   getPermissaoFazenda, 
   getFazendasUsuario,
-  PERMISSOES,
-  fazendas,
-  permissoesFazendas
+  PERMISSOES
 };
