@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS talhoes (
     safra_id INTEGER REFERENCES safras(id) ON DELETE SET NULL,
     geometria GEOMETRY(Polygon, 4326),
     centroide GEOMETRY(Point, 4326),
-    coordenadas GEOJSON,
+    coordenadas JSON,
     altitude_media DECIMAL(8, 2),
     inclinacao_media DECIMAL(5, 2),
     status VARCHAR(50) DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo', 'em_preparo', 'plantado', 'colhido')),
@@ -376,8 +376,8 @@ LEFT JOIN safras s ON t.safra_id = s.id;
 CREATE OR REPLACE VIEW v_ocorrencias_completas AS
 SELECT 
     o.*,
-    t.nome as talhao_nome,
-    f.nome as fazenda_nome,
+    t.nome as talhao_nome_original,
+    f.nome as fazenda_nome_original,
     u.nome as operador_nome_completo
 FROM ocorrencias o
 LEFT JOIN talhoes t ON o.talhao_id = t.id
