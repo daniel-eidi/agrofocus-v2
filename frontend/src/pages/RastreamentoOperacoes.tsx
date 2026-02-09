@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
+import useLocalizacao from '../hooks/useLocalizacao'
 
 interface PontoGPS {
   id: string
@@ -7,7 +8,7 @@ interface PontoGPS {
   longitude: number
   timestamp: string
   velocidade?: number
-  operacao_id: string
+  accuracy?: number
 }
 
 interface Operacao {
@@ -25,11 +26,24 @@ export default function RastreamentoOperacoes() {
   const [operacaoAtiva, setOperacaoAtiva] = useState<Operacao | null>(null)
   const [pontosGPS, setPontosGPS] = useState<PontoGPS[]>([])
   const [rastreando, setRastreando] = useState(false)
-  const [gpsStatus, setGpsStatus] = useState<'ok' | 'erro' | 'aguardando'>('aguardando')
   const [bufferOffline, setBufferOffline] = useState<PontoGPS[]>([])
   const [showMapa, setShowMapa] = useState(true)
-  const watchId = useRef<number | null>(null)
+  const [horaInicio, setHoraInicio] = useState<Date | null>(null)
+  
   const { usuario } = useAuth()
+  const { 
+    localizacao, 
+    error: gpsError, 
+    loading: gpsLoading, 
+    permissao,
+    solicitarLocalizacao,
+    watchLocalizacao,
+    formatarCoordenadas,
+    calcularDistancia,
+    temSuporte 
+  } = useLocalizacao({ enableHighAccuracy: true })
+  
+  const stopWatchRef = useRef<(() => void) | null>(null)
 
   // Dados mockados de operações
   useEffect(() => {
@@ -70,138 +84,137 @@ export default function RastreamentoOperacoes() {
     }
   }, [bufferOffline])
 
-  const iniciarRastreamento = (operacao: Operacao) => {
-    setOperacaoAtiva(operacao)
-    setRastreando(true)
-    setGpsStatus('aguardando')
-    
-    if (!navigator.geolocation) {
-      alert('Geolocalização não suportada')
-      setRastreando(false)
+  // Callback para receber novas posições
+  const onNovaPosicao = useCallback((loc: { lat: number; lng: number; speed: number | null; accuracy: number; timestamp: number }) => {
+    const novoPonto: PontoGPS = {
+      id: Date.now().toString(),
+      latitude: loc.lat,
+      longitude: loc.lng,
+      timestamp: new Date(loc.timestamp).toISOString(),
+      velocidade: loc.speed ? loc.speed * 3.6 : 0, // m/s para km/h
+      accuracy: loc.accuracy
+    }
+
+    setPontosGPS(prev => [...prev, novoPonto])
+
+    // Se há buffer offline, tentar sincronizar
+    if (bufferOffline.length > 0 && navigator.onLine) {
+      sincronizarBuffer()
+    }
+  }, [bufferOffline])
+
+  const iniciarRastreamento = async (operacao: Operacao) => {
+    if (!temSuporte) {
+      alert('Geolocalização não suportada neste navegador')
       return
     }
 
-    // Iniciar watchPosition para rastreamento contínuo
-    watchId.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const novoPonto: PontoGPS = {
-          id: Date.now().toString(),
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          timestamp: new Date().toISOString(),
-          velocidade: position.coords.speed || 0,
-          operacao_id: operacao.id
-        }
+    if (permissao === 'denied') {
+      alert('Permissão de localização negada. Verifique as configurações do navegador.')
+      return
+    }
 
-        setPontosGPS(prev => [...prev, novoPonto])
-        setGpsStatus('ok')
-
-        // Se há buffer offline, tentar sincronizar
-        if (bufferOffline.length > 0 && navigator.onLine) {
-          sincronizarBuffer()
-        }
-      },
-      (error) => {
-        console.error('Erro GPS:', error)
-        setGpsStatus('erro')
-        
-        // Salvar no buffer offline
-        const pontoErro: PontoGPS = {
-          id: Date.now().toString(),
-          latitude: 0,
-          longitude: 0,
-          timestamp: new Date().toISOString(),
-          operacao_id: operacao.id
-        }
-        setBufferOffline(prev => [...prev, pontoErro])
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    )
+    try {
+      // Solicitar permissão primeiro
+      await solicitarLocalizacao()
+      
+      setOperacaoAtiva(operacao)
+      setRastreando(true)
+      setHoraInicio(new Date())
+      
+      // Iniciar watch
+      const stop = watchLocalizacao(onNovaPosicao)
+      stopWatchRef.current = stop
+      
+    } catch (err) {
+      alert('Erro ao iniciar rastreamento: ' + (err as Error).message)
+    }
   }
 
   const pausarRastreamento = () => {
-    if (watchId.current) {
-      navigator.geolocation.clearWatch(watchId.current)
-      watchId.current = null
+    if (stopWatchRef.current) {
+      stopWatchRef.current()
+      stopWatchRef.current = null
     }
     setRastreando(false)
     setOperacaoAtiva(prev => prev ? { ...prev, status: 'pausada' } : null)
   }
 
   const finalizarOperacao = () => {
-    if (watchId.current) {
-      navigator.geolocation.clearWatch(watchId.current)
-      watchId.current = null
+    if (stopWatchRef.current) {
+      stopWatchRef.current()
+      stopWatchRef.current = null
     }
     setRastreando(false)
     setOperacaoAtiva(null)
-    setPontosGPS([])
+    setHoraInicio(null)
     
     // Limpar buffer
     localStorage.removeItem('rastreamento_buffer')
     setBufferOffline([])
   }
 
-  const sincronizarBuffer = async () => {
+  const sincronizarBuffer = () => {
     if (bufferOffline.length === 0) return
-    
-    // Simular sincronização com servidor
     console.log(`Sincronizando ${bufferOffline.length} pontos...`)
-    
-    // Limpar buffer após sincronização
     setBufferOffline([])
     localStorage.removeItem('rastreamento_buffer')
   }
 
-  const calcularDistancia = (): string => {
+  const calcularDistanciaTotal = (): string => {
     if (pontosGPS.length < 2) return '0.00'
     
     let distancia = 0
     for (let i = 1; i < pontosGPS.length; i++) {
       const p1 = pontosGPS[i - 1]
       const p2 = pontosGPS[i]
-      distancia += calcularDistanciaEntrePontos(p1.latitude, p1.longitude, p2.latitude, p2.longitude)
+      distancia += calcularDistancia(p1.latitude, p1.longitude, p2.latitude, p2.longitude)
     }
     
     return distancia.toFixed(2)
   }
 
-  const calcularDistanciaEntrePontos = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371 // Raio da Terra em km
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLon = (lon2 - lon1) * Math.PI / 180
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-    return R * c
-  }
-
   const calcularAreaTrabalhada = () => {
-    // Simplificação: assumir largura de 20m para pulverizador
     const largura = 20 // metros
-    const distancia = parseFloat(calcularDistancia()) * 1000 // converter para metros
-    const area = (distancia * largura) / 10000 // hectares
+    const distancia = parseFloat(calcularDistanciaTotal()) * 1000
+    const area = (distancia * largura) / 10000
     return area.toFixed(2)
   }
 
   const tempoOperacao = () => {
-    if (!operacaoAtiva) return '00:00'
-    const inicio = new Date(operacaoAtiva.data_inicio)
+    if (!horaInicio) return '00:00'
     const agora = new Date()
-    const diff = Math.floor((agora.getTime() - inicio.getTime()) / 1000)
+    const diff = Math.floor((agora.getTime() - horaInicio.getTime()) / 1000)
     const horas = Math.floor(diff / 3600)
     const minutos = Math.floor((diff % 3600) / 60)
     return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`
   }
 
+  const getStatusGPS = () => {
+    if (gpsLoading) return 'aguardando'
+    if (gpsError) return 'erro'
+    if (localizacao) return 'ok'
+    return 'aguardando'
+  }
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'ok': return '#22c55e'
+      case 'erro': return '#ef4444'
+      case 'aguardando': return '#f59e0b'
+      default: return '#6b7280'
+    }
+  }
+
   return (
     <div style={{padding: 20}}>
       <h1>🚜 Rastreamento de Operações</h1>
+
+      {!temSuporte && (
+        <div style={{background: '#fee2e2', color: '#dc2626', padding: 16, borderRadius: 8, marginBottom: 20}}>
+          ⚠️ Geolocalização não suportada neste navegador. Use um navegador moderno como Chrome ou Safari.
+        </div>
+      )}
 
       {/* Status Panel */}
       <div style={{
@@ -210,7 +223,8 @@ export default function RastreamentoOperacoes() {
         borderRadius: 12,
         marginBottom: 20,
         borderLeft: rastreando ? '4px solid #22c55e' : '4px solid #6b7280'
-      }}>
+      }}
+      >
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 15}}>
           <div>
             <h3 style={{margin: 0}}>
@@ -220,17 +234,28 @@ export default function RastreamentoOperacoes() {
               <div style={{marginTop: 8, color: '#666'}}>
                 <div>📝 {operacaoAtiva.tipo} - {operacaoAtiva.talhao_nome}</div>
                 <div>⏱️ Tempo: {tempoOperacao()}</div>
-                <div>📏 Distância: {calcularDistancia()} km</div>
+                <div>📏 Distância: {calcularDistanciaTotal()} km</div>
                 <div>📐 Área: {calcularAreaTrabalhada()} ha</div>
                 <div>📍 Pontos: {pontosGPS.length}</div>
+                {localizacao && (
+                  <div style={{fontSize: 12, marginTop: 4}}>
+                    🎯 Precisão: {localizacao.accuracy.toFixed(0)}m
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           <div style={{display: 'flex', gap: 10, flexWrap: 'wrap'}}>
-            {gpsStatus === 'ok' && <span style={{background: '#22c55e', color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 12}}>📡 GPS OK</span>}
-            {gpsStatus === 'erro' && <span style={{background: '#ef4444', color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 12}}>📡 GPS Erro</span>}
-            {gpsStatus === 'aguardando' && <span style={{background: '#f59e0b', color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 12}}>📡 Aguardando GPS...</span>}
+            <span style={{
+              background: getStatusColor(getStatusGPS()),
+              color: 'white',
+              padding: '4px 12px',
+              borderRadius: 20,
+              fontSize: 12
+            }}>
+              {getStatusGPS() === 'ok' ? '📡 GPS OK' : getStatusGPS() === 'erro' ? '📡 GPS Erro' : '📡 Aguardando...'}
+            </span>
             
             {navigator.onLine ? (
               <span style={{background: '#22c55e', color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 12}}>🌐 Online</span>
@@ -243,6 +268,12 @@ export default function RastreamentoOperacoes() {
             )}
           </div>
         </div>
+
+        {gpsError && (
+          <div style={{marginTop: 15, padding: 12, background: '#fee2e2', color: '#dc2626', borderRadius: 8}}>
+            Erro GPS: {gpsError}
+          </div>
+        )}
 
         {rastreando && (
           <div style={{marginTop: 15, display: 'flex', gap: 10}}>
@@ -305,17 +336,18 @@ export default function RastreamentoOperacoes() {
                   {op.status !== 'finalizada' && (
                     <button
                       onClick={() => iniciarRastreamento(op)}
+                      disabled={!temSuporte || gpsLoading}
                       style={{
                         padding: '12px 24px',
-                        background: '#166534',
+                        background: temSuporte ? '#166534' : '#9ca3af',
                         color: 'white',
                         border: 'none',
                         borderRadius: 8,
-                        cursor: 'pointer',
+                        cursor: temSuporte ? 'pointer' : 'not-allowed',
                         fontWeight: 600
                       }}
                     >
-                      ▶️ Iniciar Rastreamento
+                      {gpsLoading ? '⏳ Aguardando GPS...' : '▶️ Iniciar Rastreamento'}
                     </button>
                   )}
                 </div>
@@ -352,13 +384,20 @@ export default function RastreamentoOperacoes() {
               borderRadius: 12,
               textAlign: 'center',
               minHeight: 300
-            }}>
+            }}
+            >
               <p>🗺️ Mapa de Trilha</p>
               <p style={{color: '#666'}}>{pontosGPS.length} pontos registrados</p>
               <p style={{color: '#666', fontSize: 14}}>
                 De: ({pontosGPS[0]?.latitude.toFixed(6)}, {pontosGPS[0]?.longitude.toFixed(6)})<br/>
                 Até: ({pontosGPS[pontosGPS.length - 1]?.latitude.toFixed(6)}, {pontosGPS[pontosGPS.length - 1]?.longitude.toFixed(6)})
               </p>
+              
+              {localizacao && (
+                <p style={{color: '#166534', fontSize: 14}}>
+                  📍 Posição atual: {formatarCoordenadas(localizacao.lat, localizacao.lng, 6)}
+                </p>
+              )}
               
               {/* Representação visual simples da trilha */}
               <div style={{
@@ -367,12 +406,12 @@ export default function RastreamentoOperacoes() {
                 background: 'white',
                 borderRadius: 8,
                 display: 'inline-block'
-              }}>
+              }}
+              >
                 <svg width="300" height="200" style={{border: '1px solid #ddd'}}>
                   {pontosGPS.map((ponto, idx) => {
                     if (idx === 0) return null
                     const anterior = pontosGPS[idx - 1]
-                    // Simplificação: normalizar para SVG
                     const x1 = 150 + (anterior.longitude - pontosGPS[0].longitude) * 10000
                     const y1 = 100 - (anterior.latitude - pontosGPS[0].latitude) * 10000
                     const x2 = 150 + (ponto.longitude - pontosGPS[0].longitude) * 10000
@@ -390,6 +429,7 @@ export default function RastreamentoOperacoes() {
                       />
                     )
                   })}
+                  
                   <circle cx="150" cy="100" r="5" fill="#22c55e" />
                   <text x="160" y="105" fontSize="10">Início</text>
                 </svg>
@@ -404,6 +444,7 @@ export default function RastreamentoOperacoes() {
                     <th style={{textAlign: 'left', padding: 10, borderBottom: '1px solid #ddd'}}>Latitude</th>
                     <th style={{textAlign: 'left', padding: 10, borderBottom: '1px solid #ddd'}}>Longitude</th>
                     <th style={{textAlign: 'left', padding: 10, borderBottom: '1px solid #ddd'}}>Velocidade</th>
+                    <th style={{textAlign: 'left', padding: 10, borderBottom: '1px solid #ddd'}}>Precisão</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -413,6 +454,7 @@ export default function RastreamentoOperacoes() {
                       <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{ponto.latitude.toFixed(6)}</td>
                       <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{ponto.longitude.toFixed(6)}</td>
                       <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(ponto.velocidade || 0).toFixed(1)} km/h</td>
+                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(ponto.accuracy || 0).toFixed(0)}m</td>
                     </tr>
                   ))}
                 </tbody>
