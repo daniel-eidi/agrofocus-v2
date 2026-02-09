@@ -103,27 +103,106 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Rotas de autenticação
+// Rotas de autenticação e fazendas
 app.use('/api/auth', authRoutes);
 
-// Rotas de cadastros (protegidas)
-app.get('/api/fazendas', (req, res) => res.json(fazendas));
-app.post('/api/fazendas', (req, res) => {
-  const nova = { id: Date.now().toString(), ...req.body };
-  fazendas.push(nova);
-  res.status(201).json(nova);
+// Importar dados e funções do auth
+const { 
+  getFazendasUsuario, 
+  getPermissaoFazenda,
+  PERMISSOES,
+  fazendas: fazendasAuth,
+  permissoesFazendas 
+} = require('./routes/auth.routes');
+
+// Rotas de fazendas (protegidas por autenticação)
+app.get('/api/fazendas', authMiddleware, (req, res) => {
+  const fazendasUsuario = getFazendasUsuario(req.usuario.id);
+  res.json(fazendasUsuario);
 });
 
-app.get('/api/safras', (req, res) => res.json(safras));
-app.get('/api/talhoes', (req, res) => res.json(talhoes));
-app.get('/api/operadores', (req, res) => res.json(operadores));
-app.get('/api/equipamentos', (req, res) => res.json(equipamentos));
+app.post('/api/fazendas', authMiddleware, (req, res) => {
+  const { nome, municipio, estado, area_total, car } = req.body;
+  
+  if (!nome) {
+    return res.status(400).json({ sucesso: false, erro: 'Nome da fazenda é obrigatório' });
+  }
+  
+  const novaFazenda = {
+    id: Date.now().toString(),
+    nome,
+    municipio: municipio || '',
+    estado: estado || '',
+    area_total: area_total || 0,
+    car: car || '',
+    proprietario_id: req.usuario.id,
+    minha_permissao: PERMISSOES.DONO,
+    compartilhada: false,
+    created_at: new Date().toISOString()
+  };
+  
+  fazendasAuth.push(novaFazenda);
+  res.status(201).json(novaFazenda);
+});
+
+// Middleware para verificar permissão em fazendas
+const checkFazendaPermissao = (nivelMinimo) => {
+  return (req, res, next) => {
+    const { fazendaId } = req.params;
+    const permissao = getPermissaoFazenda(req.usuario.id, fazendaId);
+    
+    if (!permissao) {
+      return res.status(403).json({ sucesso: false, erro: 'Acesso negado à fazenda' });
+    }
+    
+    const niveis = [PERMISSOES.VISUALIZADOR, PERMISSOES.OPERADOR, PERMISSOES.GERENTE, PERMISSOES.DONO];
+    const nivelUsuario = niveis.indexOf(permissao);
+    const nivelRequerido = niveis.indexOf(nivelMinimo);
+    
+    if (nivelUsuario < nivelRequerido) {
+      return res.status(403).json({ sucesso: false, erro: 'Permissão insuficiente' });
+    }
+    
+    req.permissaoFazenda = permissao;
+    next();
+  };
+};
+
+// Rotas de cadastros (filtradas por fazenda do usuário)
+app.get('/api/safras', authMiddleware, (req, res) => {
+  // TODO: Filtrar safras pelas fazendas que o usuário tem acesso
+  res.json(safras);
+});
+
+app.get('/api/talhoes', authMiddleware, (req, res) => {
+  // TODO: Filtrar talhões pelas fazendas que o usuário tem acesso
+  res.json(talhoes);
+});
+
+app.get('/api/operadores', authMiddleware, (req, res) => {
+  res.json(operadores);
+});
+
+app.get('/api/equipamentos', authMiddleware, (req, res) => {
+  res.json(equipamentos);
+});
 
 // Rotas operacionais
-app.get('/api/atividades', (req, res) => res.json(atividades));
-app.get('/api/ocorrencias', (req, res) => res.json(ocorrencias));
-app.get('/api/estoque/insumos', (req, res) => res.json(insumos));
-app.get('/api/financeiro/despesas', (req, res) => res.json(despesas));
+app.get('/api/atividades', authMiddleware, (req, res) => {
+  res.json(atividades);
+});
+
+app.get('/api/ocorrencias', authMiddleware, (req, res) => {
+  res.json(ocorrencias);
+});
+
+app.get('/api/estoque/insumos', authMiddleware, (req, res) => {
+  res.json(insumos);
+});
+
+app.get('/api/financeiro/despesas', authMiddleware, (req, res) => {
+  res.json(despesas);
+});
 
 // Rotas originais
 app.use('/api/talhoes', talhoesRoutes);

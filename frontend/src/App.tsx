@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Registro from './pages/Registro'
 
 // Páginas protegidas
+import MinhasFazendas from './pages/MinhasFazendas'
 import Fazendas from './pages/cadastros/Fazendas'
 import Safras from './pages/cadastros/Safras'
 import Talhoes from './pages/cadastros/Talhoes'
@@ -109,6 +110,7 @@ const Dashboard = () => (
     
     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 15}}>
       {[
+        { path: '/minhas-fazendas', icon: '🏠', title: 'Minhas Fazendas', desc: 'Gerenciar fazendas e compartilhamentos' },
         { path: '/fazendas', icon: '🚜', title: 'Fazendas', desc: 'Cadastro de fazendas' },
         { path: '/safras', icon: '🌾', title: 'Safras', desc: 'Gestão de safras' },
         { path: '/talhoes', icon: '📐', title: 'Talhões', desc: 'Áreas de plantio' },
@@ -150,6 +152,7 @@ function App() {
         
         {/* Rotas protegidas */}
         <Route path="/" element={<LayoutAutenticado />} />
+        <Route path="/minhas-fazendas" element={<RotaProtegida><MinhasFazendas /></RotaProtegida>} />
         <Route path="/fazendas" element={<RotaProtegida><Fazendas /></RotaProtegida>} />
         <Route path="/safras" element={<RotaProtegida><Safras /></RotaProtegida>} />
         <Route path="/talhoes" element={<RotaProtegida><Talhoes /></RotaProtegida>} />
