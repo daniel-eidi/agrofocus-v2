@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import useLocalizacao from '../hooks/useLocalizacao'
+import MapaRastreamento from '../components/MapaRastreamento'
 
 interface PontoGPS {
   id: string
@@ -38,7 +39,6 @@ export default function RastreamentoOperacoes() {
     permissao,
     solicitarLocalizacao,
     watchLocalizacao,
-    formatarCoordenadas,
     calcularDistancia,
     temSuporte 
   } = useLocalizacao({ enableHighAccuracy: true })
@@ -378,63 +378,11 @@ export default function RastreamentoOperacoes() {
           </div>
 
           {showMapa ? (
-            <div style={{
-              background: '#e5e7eb',
-              padding: 40,
-              borderRadius: 12,
-              textAlign: 'center',
-              minHeight: 300
-            }}
-            >
-              <p>🗺️ Mapa de Trilha</p>
-              <p style={{color: '#666'}}>{pontosGPS.length} pontos registrados</p>
-              <p style={{color: '#666', fontSize: 14}}>
-                De: ({pontosGPS[0]?.latitude.toFixed(6)}, {pontosGPS[0]?.longitude.toFixed(6)})<br/>
-                Até: ({pontosGPS[pontosGPS.length - 1]?.latitude.toFixed(6)}, {pontosGPS[pontosGPS.length - 1]?.longitude.toFixed(6)})
-              </p>
-              
-              {localizacao && (
-                <p style={{color: '#166534', fontSize: 14}}>
-                  📍 Posição atual: {formatarCoordenadas(localizacao.lat, localizacao.lng, 6)}
-                </p>
-              )}
-              
-              {/* Representação visual simples da trilha */}
-              <div style={{
-                marginTop: 20,
-                padding: 20,
-                background: 'white',
-                borderRadius: 8,
-                display: 'inline-block'
-              }}
-              >
-                <svg width="300" height="200" style={{border: '1px solid #ddd'}}>
-                  {pontosGPS.map((ponto, idx) => {
-                    if (idx === 0) return null
-                    const anterior = pontosGPS[idx - 1]
-                    const x1 = 150 + (anterior.longitude - pontosGPS[0].longitude) * 10000
-                    const y1 = 100 - (anterior.latitude - pontosGPS[0].latitude) * 10000
-                    const x2 = 150 + (ponto.longitude - pontosGPS[0].longitude) * 10000
-                    const y2 = 100 - (ponto.latitude - pontosGPS[0].latitude) * 10000
-                    
-                    return (
-                      <line
-                        key={ponto.id}
-                        x1={Math.max(10, Math.min(290, x1))}
-                        y1={Math.max(10, Math.min(190, y1))}
-                        x2={Math.max(10, Math.min(290, x2))}
-                        y2={Math.max(10, Math.min(190, y2))}
-                        stroke="#166534"
-                        strokeWidth="2"
-                      />
-                    )
-                  })}
-                  
-                  <circle cx="150" cy="100" r="5" fill="#22c55e" />
-                  <text x="160" y="105" fontSize="10">Início</text>
-                </svg>
-              </div>
-            </div>
+            <MapaRastreamento 
+              pontos={pontosGPS}
+              posicaoAtual={localizacao ? { lat: localizacao.lat, lng: localizacao.lng } : null}
+              rastreando={rastreando}
+            />
           ) : (
             <div style={{background: 'white', padding: 20, borderRadius: 12, maxHeight: 400, overflow: 'auto'}}>
               <table style={{width: '100%', borderCollapse: 'collapse'}}>
