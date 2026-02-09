@@ -49,8 +49,34 @@ const atividades = [
 ];
 
 const ocorrencias = [
-  { id: '1', tipo: 'Lagarta', descricao: 'Infestação leve na área norte', data: '2025-02-05', gravidade: 'media', status: 'pendente', talhao_nome: 'Talhão A1' },
-  { id: '2', tipo: 'Ferrugem', descricao: 'Manchas identificadas', data: '2025-02-07', gravidade: 'baixa', status: 'concluida', talhao_nome: 'Talhão A2' }
+  { 
+    id: '1', 
+    tipo: 'Lagarta', 
+    categoria: 'praga',
+    titulo: 'Infestação leve na área norte',
+    descricao: 'Detectado: Lagarta Helicoverpa armigera (91% confiança). Recomendação: Aplicar inseticida específico nas próximas 48h.',
+    data: '2025-02-05', 
+    gravidade: 'media', 
+    status: 'aberta', 
+    talhao_nome: 'Talhão A1',
+    latitude: -21.123456,
+    longitude: -47.123456,
+    ia_analise: 'Lagarta Helicoverpa armigera (91% confiança)'
+  },
+  { 
+    id: '2', 
+    tipo: 'Ferrugem', 
+    categoria: 'doenca',
+    titulo: 'Manchas identificadas no limbo foliar',
+    descricao: 'Detectado: Ferrugem Asiática (87% confiança). Recomendação: Monitorar e aplicar fungicida preventivo.',
+    data: '2025-02-07', 
+    gravidade: 'baixa', 
+    status: 'resolvida', 
+    talhao_nome: 'Talhão A2',
+    latitude: -21.234567,
+    longitude: -47.234567,
+    ia_analise: 'Ferrugem Asiática (87% confiança)'
+  }
 ];
 
 const insumos = [
@@ -194,6 +220,31 @@ app.get('/api/atividades', authMiddleware, (req, res) => {
 
 app.get('/api/ocorrencias', authMiddleware, (req, res) => {
   res.json(ocorrencias);
+});
+
+app.post('/api/ocorrencias', authMiddleware, (req, res) => {
+  const { tipo, categoria, titulo, descricao, severidade, latitude, longitude, fotos } = req.body;
+  
+  const novaOcorrencia = {
+    id: Date.now().toString(),
+    tipo: tipo || 'Outro',
+    categoria: categoria || 'outro',
+    titulo: titulo || '',
+    descricao: descricao || '',
+    data: new Date().toISOString(),
+    severidade: severidade || 'media',
+    status: 'aberta',
+    talhao_nome: 'Talhão em edição',
+    operador_nome: req.usuario?.nome || 'Usuário',
+    latitude: latitude || null,
+    longitude: longitude || null,
+    foto_url_1: fotos?.[0] || null,
+    foto_url_2: fotos?.[1] || null,
+    foto_url_3: fotos?.[2] || null
+  };
+  
+  ocorrencias.unshift(novaOcorrencia);
+  res.status(201).json(novaOcorrencia);
 });
 
 app.get('/api/estoque/insumos', authMiddleware, (req, res) => {
