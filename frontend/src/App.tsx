@@ -1,9 +1,5 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import NotificationBadge from './components/NotificationBadge'
-import InstallButton from './components/InstallButton'
-import OfflineStatus from './components/OfflineStatus'
-import { usePWA } from './hooks/usePWA'
 
 // Páginas públicas
 import Login from './pages/Login'
@@ -27,7 +23,6 @@ import Financeiro from './pages/Financeiro'
 import Meteorologia from './pages/Meteorologia'
 import Produtividade from './pages/Produtividade'
 import Delineamento from './pages/Delineamento'
-import PWADiagnostics from './pages/PWADiagnostics'
 
 // Componente para proteger rotas
 function RotaProtegida({ children }: { children: React.ReactNode }) {
@@ -44,53 +39,22 @@ function RotaProtegida({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// Badge de PWA instalado
-function PWABadge() {
-  const { state } = usePWA()
-  
-  if (state.isInstalled) {
-    return (
-      <span 
-        title="App instalado - funciona offline!"
-        style={{ 
-          fontSize: 12, 
-          opacity: 0.9,
-          background: 'rgba(255,255,255,0.2)',
-          padding: '2px 8px',
-          borderRadius: 12
-        }}
-      >
-        📲 App
-      </span>
-    )
-  }
-  
-  return null
-}
-
 // Layout com navegação
 function LayoutAutenticado() {
   const { usuario, logout } = useAuth()
-  const { state } = usePWA()
-  
-  // Ajusta padding se houver banner offline
-  const hasOfflineBanner = state.isOffline || state.inspecoesPendentes > 0
   
   return (
     <div style={{
       fontFamily: 'system-ui, sans-serif', 
       minHeight: '100vh', 
-      background: '#f3f4f6',
-      paddingTop: hasOfflineBanner ? 50 : 0
+      background: '#f3f4f6'
     }}>
-      <OfflineStatus />
-      
       <nav style={{
         background: '#166534', 
         color: 'white', 
         padding: '15px 20px', 
         position: 'sticky', 
-        top: hasOfflineBanner ? 44 : 0, 
+        top: 0, 
         zIndex: 100,
         display: 'flex',
         justifyContent: 'space-between',
@@ -100,28 +64,10 @@ function LayoutAutenticado() {
           <Link to="/" style={{color: 'white', textDecoration: 'none', fontSize: 24, fontWeight: 'bold'}}>
             🌱 AgroFocus
           </Link>
-          <PWABadge />
         </div>
         
         {usuario && (
           <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-            {/* Status offline/online */}
-            {state.isOffline && (
-              <span 
-                title="Modo offline"
-                style={{ 
-                  fontSize: 14,
-                  padding: '4px 8px',
-                  background: '#f59e0b',
-                  borderRadius: 4
-                }}
-              >
-                📡 Offline
-              </span>
-            )}
-            
-            <NotificationBadge />
-            <InstallButton />
             <span style={{fontSize: 14}}>👤 {usuario.nome}</span>
             <button 
               onClick={logout}
@@ -171,24 +117,22 @@ const Dashboard = () => (
     
     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 15}}>
       {[
-        { path: '/minhas-fazendas', icon: '🏠', title: 'Minhas Fazendas', desc: 'Gerenciar fazendas e compartilhamentos' },
-        { path: '/fazendas', icon: '🚜', title: 'Fazendas', desc: 'Cadastro de fazendas' },
-        { path: '/safras', icon: '🌾', title: 'Safras', desc: 'Gestão de safras' },
-        { path: '/talhoes', icon: '📐', title: 'Talhões', desc: 'Áreas de plantio' },
+        { path: '/minhas-fazendas', icon: '🏠', title: 'Minhas Fazendas', desc: 'Gerenciar fazendas' },
+        { path: '/fazendas', icon: '🚜', title: 'Fazendas', desc: 'Cadastro' },
+        { path: '/safras', icon: '🌾', title: 'Safras', desc: 'Gestão' },
+        { path: '/talhoes', icon: '📐', title: 'Talhões', desc: 'Áreas' },
         { path: '/operadores', icon: '👷', title: 'Operadores', desc: 'Equipe' },
         { path: '/equipamentos', icon: '🚜', title: 'Equipamentos', desc: 'Frota' },
-        { path: '/monitoramento', icon: '🛰️', title: 'Monitoramento', desc: 'NDVI/NDRE/MSAVI' },
+        { path: '/monitoramento', icon: '🛰️', title: 'Monitoramento', desc: 'NDVI' },
         { path: '/atividades', icon: '📅', title: 'Atividades', desc: 'Operações' },
-        { path: '/ocorrencias', icon: '🔍', title: 'Ocorrências', desc: 'Pragas/doenças' },
-        { path: '/inspecao', icon: '📸', title: 'Inspeção de Campo', desc: 'Fotos + GPS + IA' },
-        { path: '/especialista', icon: '👨‍🌾', title: 'Painel Especialista', desc: 'Análise de inspeções pendentes' },
-        { path: '/rastreamento', icon: '🛰️', title: 'Rastreamento GPS', desc: 'Operações em tempo real' },
+        { path: '/ocorrencias', icon: '🔍', title: 'Ocorrências', desc: 'Pragas' },
+        { path: '/inspecao', icon: '📸', title: 'Inspeção', desc: 'Fotos + IA' },
+        { path: '/rastreamento', icon: '🛰️', title: 'Rastreamento', desc: 'GPS' },
         { path: '/estoque', icon: '📦', title: 'Estoque', desc: 'Insumos' },
         { path: '/financeiro', icon: '💰', title: 'Financeiro', desc: 'Despesas' },
-        { path: '/meteorologia', icon: '🌡️', title: 'Meteorologia', desc: 'GDD/Previsão' },
+        { path: '/meteorologia', icon: '🌡️', title: 'Meteorologia', desc: 'GDD' },
         { path: '/produtividade', icon: '🤖', title: 'Produtividade', desc: 'ML' },
         { path: '/delineamento', icon: '📐', title: 'Delineamento', desc: 'Zonas' },
-        { path: '/pwa-status', icon: '📲', title: 'Status PWA', desc: 'Diagnóstico offline' },
       ].map(item => (
         <Link key={item.path} to={item.path} style={{textDecoration: 'none'}}>
           <div style={{
@@ -196,7 +140,6 @@ const Dashboard = () => (
             padding: 20, 
             borderRadius: 8, 
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            transition: 'transform 0.2s',
           }}>
             <h3>{item.icon} {item.title}</h3>
             <p style={{color: '#666'}}>{item.desc}</p>
@@ -211,11 +154,8 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Rotas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
-        
-        {/* Rotas protegidas */}
         <Route path="/" element={<LayoutAutenticado />} />
         <Route path="/minhas-fazendas" element={<RotaProtegida><MinhasFazendas /></RotaProtegida>} />
         <Route path="/fazendas" element={<RotaProtegida><Fazendas /></RotaProtegida>} />
@@ -234,7 +174,6 @@ function App() {
         <Route path="/meteorologia" element={<RotaProtegida><Meteorologia /></RotaProtegida>} />
         <Route path="/produtividade" element={<RotaProtegida><Produtividade /></RotaProtegida>} />
         <Route path="/delineamento" element={<RotaProtegida><Delineamento /></RotaProtegida>} />
-        <Route path="/pwa-status" element={<RotaProtegida><PWADiagnostics /></RotaProtegida>} />
       </Routes>
     </AuthProvider>
   )
