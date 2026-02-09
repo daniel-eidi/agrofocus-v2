@@ -1,0 +1,135 @@
+/** Estilos do Painel de Alertas */
+
+.alertas-panel {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.alertas-panel.sucesso {
+  background: #e8f5e9;
+  border: 2px solid #4CAF50;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.panel-header .icon {
+  font-size: 1.5rem;
+}
+
+.panel-header h3 {
+  flex: 1;
+  font-size: 1.1rem;
+  color: #555;
+  margin: 0;
+}
+
+.panel-header .badge {
+  background: #f44336;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.alertas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alerta-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 15px;
+  border-radius: 12px;
+  border-left: 4px solid #ddd;
+}
+
+.alerta-item.critico {
+  background: #ffebee;
+  border-left-color: #f44336;
+}
+
+.alerta-item.atencao {
+  background: #fff8e1;
+  border-left-color: #ffc107;
+}
+
+.alerta-item.positivo {
+  background: #e8f5e9;
+  border-left-color: #4CAF50;
+}
+
+.alerta-item.info {
+  background: #e3f2fd;
+  border-left-color: #2196F3;
+}
+
+.alerta-item .icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.alerta-item .conteudo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.alerta-item .titulo {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.alerta-item.critico .titulo {
+  color: #c62828;
+}
+
+.alerta-item.atencao .titulo {
+  color: #f57c00;
+}
+
+.alerta-item.positivo .titulo {
+  color: #2e7d32;
+}
+
+.alerta-item .mensagem {
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.4;
+}
+
+.alerta-item .acao {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+  margin-top: 5px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(0,0,0,0.1);
+}
+
+.panel-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.panel-footer .info {
+  font-size: 0.8rem;
+  color: #999;
+}

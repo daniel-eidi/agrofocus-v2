@@ -1,0 +1,157 @@
+/** Estilos do Card de Produtividade */
+
+.produtividade-card {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  border-top: 5px solid #ddd;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.produtividade-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+/* Cores por classificação */
+.produtividade-card.excelente {
+  border-top-color: #FFD700;
+}
+
+.produtividade-card.bom {
+  border-top-color: #4CAF50;
+}
+
+.produtividade-card.medio {
+  border-top-color: #FF9800;
+}
+
+.produtividade-card.baixo {
+  border-top-color: #f44336;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.card-header .icon {
+  font-size: 1.5rem;
+}
+
+.card-header h3 {
+  flex: 1;
+  font-size: 1.1rem;
+  color: #555;
+  margin: 0;
+}
+
+.metodo-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.card-body {
+  text-align: center;
+}
+
+.valor-principal {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.valor-principal .numero {
+  font-size: 4rem;
+  font-weight: 800;
+  color: #2c3e50;
+  line-height: 1;
+}
+
+.valor-principal .unidade {
+  font-size: 1.2rem;
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.intervalo-confianca {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.intervalo-confianca .label {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.intervalo-confianca .valores {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.classificacao {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.classificacao.excelente {
+  background: #fff8e1;
+  color: #f57c00;
+}
+
+.classificacao.bom {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.classificacao.medio {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.classificacao.baixo {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.cultura-tag {
+  background: #f0f0f0;
+  color: #555;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.atualizacao {
+  font-size: 0.8rem;
+  color: #999;
+}

@@ -1,0 +1,129 @@
+import React, { useState } from 'react'
+import { Link, useLocation, Outlet } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  MapPin,
+  Calendar,
+  AlertTriangle,
+  Package,
+  DollarSign,
+  CloudSun,
+  TrendingUp,
+  Grid3X3,
+  Users,
+  Tractor,
+  Sprout,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+  BarChart3
+} from 'lucide-react'
+
+const menuItems = [
+  { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  {
+    label: 'Cadastros',
+    icon: Grid3X3,
+    submenu: [
+      { path: '/fazendas', icon: MapPin, label: 'Fazendas' },
+      { path: '/safras', icon: Sprout, label: 'Safras' },
+      { path: '/talhoes', icon: Grid3X3, label: 'Talhões' },
+      { path: '/operadores', icon: Users, label: 'Operadores' },
+      { path: '/equipamentos', icon: Tractor, label: 'Equipamentos' },
+    ]
+  },
+  { path: '/monitoramento', icon: BarChart3, label: 'Monitoramento' },
+  { path: '/atividades', icon: Calendar, label: 'Atividades' },
+  { path: '/ocorrencias', icon: AlertTriangle, label: 'Ocorrências' },
+  { path: '/estoque', icon: Package, label: 'Estoque' },
+  { path: '/financeiro', icon: DollarSign, label: 'Financeiro' },
+  { path: '/meteorologia', icon: CloudSun, label: 'Meteorologia' },
+  { path: '/produtividade', icon: TrendingUp, label: 'Produtividade' },
+  { path: '/delineamento', icon: MapPin, label: 'Delineamento' },
+]
+
+function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolean) => void }) {
+  const location = useLocation()
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['Cadastros'])
+
+  const toggleMenu = (label: string) => {
+    setExpandedMenus(prev =>
+      prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
+    )
+  }
+
+  const isActive = (path: string) => location.pathname === path
+
+  return (
+    <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+      <div className="sidebar-header">
+        <div className="logo">
+          <Sprout size={28} />
+          <span>AgroFocus</span>
+        </div>
+        <button className="menu-toggle" onClick={() => setIsOpen(!isOpen)}>
+          {isOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
+      <nav className="sidebar-nav">
+        {menuItems.map((item) => {
+          if (item.submenu) {
+            const isExpanded = expandedMenus.includes(item.label)
+            return (
+              <div key={item.label} className="menu-group">
+                <button
+                  className="menu-item"
+                  onClick={() => toggleMenu(item.label)}
+                >
+                  <item.icon size={20} />
+                  <span>{item.label}</span>
+                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {isExpanded && (
+                  <div className="submenu">
+                    {item.submenu.map((sub) => (
+                      <Link
+                        key={sub.path}
+                        to={sub.path}
+                        className={`submenu-item ${isActive(sub.path) ? 'active' : ''}`}
+                      >
+                        <sub.icon size={18} />
+                        <span>{sub.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`menu-item ${isActive(item.path) ? 'active' : ''}`}
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+    </aside>
+  )
+}
+
+export default function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  return (
+    <div className="app">
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <main className={`main-content ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+        <Outlet />
+      </main>
+    </div>
+  )
+}

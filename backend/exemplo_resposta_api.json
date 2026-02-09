@@ -1,0 +1,86 @@
+{
+  "_descricao": "Exemplo de resposta do endpoint GET /api/produtividade/estimar/talhao-001",
+  "sucesso": true,
+  "talhaoId": "talhao-001",
+  "safra": "2023/2024",
+  "cultura": {
+    "id": "1",
+    "nome": "Milho"
+  },
+  "estimativa": {
+    "produtividade_ton_ha": 11.5,
+    "intervalo_confianca": {
+      "min": 10.2,
+      "max": 12.8,
+      "nivel": "95%"
+    },
+    "metodo": "modelo_ml",
+    "features_utilizadas": {
+      "ndvi_mean": 0.82,
+      "gdd_total": 1850,
+      "precip_total": 520
+    }
+  },
+  "comparativos": {
+    "media_historica": {
+      "estimativa_atual": 11.5,
+      "media_historica": 10.8,
+      "diferenca_absoluta": 0.7,
+      "diferenca_percentual": 6.48,
+      "status": "acima",
+      "alertas": [
+        {
+          "tipo": "positivo",
+          "icone": "✅",
+          "mensagem": "Estimativa 6.5% acima da média histórica",
+          "acao_sugerida": "Cultura com bom desenvolvimento"
+        }
+      ]
+    },
+    "ano_anterior": {
+      "safra_anterior": "2022/2023",
+      "estimativa_ano_anterior": 10.2,
+      "diferenca": 1.3,
+      "variacao_percentual": 12.75,
+      "tendencia": "melhora"
+    }
+  },
+  "tendencia": {
+    "tendencia": "crescente",
+    "variacao_percentual": 8.5,
+    "produtividade_media": 10.5,
+    "produtividade_ultimo_ano": 11.2,
+    "anos_disponiveis": ["2021/2022", "2022/2023", "2023/2024"],
+    "produtividades": [9.8, 10.5, 11.2]
+  },
+  "produtividade_real": {
+    "disponivel": true,
+    "produtividade_ton_ha": 11.8,
+    "data_colheita": "2024-03-15",
+    "umidade": 13.5,
+    "fonte": "produtor"
+  },
+  "alertas": [],
+  "dados_historicos": {
+    "ndvi_medio": 0.82,
+    "gdd_acumulado": 1850,
+    "precipitacao_total": 520,
+    "ultimas_3_safras": [
+      {
+        "safra": "2022/2023",
+        "ndvi_medio": 0.78,
+        "gdd_acumulado": 1820,
+        "precipitacao": 480,
+        "produtividade_real": 10.5
+      },
+      {
+        "safra": "2021/2022",
+        "ndvi_medio": 0.72,
+        "gdd_acumulado": 1750,
+        "precipitacao": 450,
+        "produtividade_real": 9.8
+      }
+    ]
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}

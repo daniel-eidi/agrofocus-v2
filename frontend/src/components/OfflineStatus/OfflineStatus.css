@@ -1,0 +1,362 @@
+/** Componente OfflineStatus Styles */
+
+.offline-status {
+  background: var(--bg-secondary, #f5f5f5);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: all 0.2s ease;
+  min-width: 200px;
+}
+
+.offline-status:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Status States */
+.offline-status.online {
+  border-left: 4px solid #28a745;
+  background: #f0fff4;
+}
+
+.offline-status.pending {
+  border-left: 4px solid #ffc107;
+  background: #fffbf0;
+}
+
+.offline-status.offline {
+  border-left: 4px solid #fd7e14;
+  background: #fff5eb;
+}
+
+.offline-status.offline-pending {
+  border-left: 4px solid #dc3545;
+  background: #fff5f5;
+}
+
+.offline-status.syncing {
+  border-left: 4px solid #007bff;
+  background: #f0f8ff;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Header */
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.status-text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.connection-quality {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.expand-icon {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  color: var(--text-secondary, #666);
+}
+
+.expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+/* Details Section */
+.status-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #ddd);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.detail-label {
+  color: var(--text-secondary, #666);
+}
+
+.detail-value {
+  color: var(--text-primary, #333);
+  font-weight: 500;
+}
+
+.detail-value.warning {
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.detail-item.error .detail-value {
+  color: #dc3545;
+}
+
+/* Buttons */
+.sync-button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sync-button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.sync-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.offline-hint {
+  margin-top: 12px;
+  padding: 8px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #856404;
+}
+
+/* Compact Mode */
+.offline-status.compact {
+  min-width: auto;
+  padding: 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.offline-status.compact .status-icon {
+  font-size: 20px;
+}
+
+.pending-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #dc3545;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Tooltip for compact mode */
+.status-tooltip {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  white-space: nowrap;
+  animation: fadeIn 0.2s ease;
+}
+
+.status-tooltip p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.status-tooltip .last-sync {
+  color: #666;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Toast Notification */
+.sync-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border: 1px solid #28a745;
+  border-left: 4px solid #28a745;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 10000;
+  animation: slideInRight 0.3s ease;
+}
+
+.sync-toast span {
+  font-size: 14px;
+  color: #333;
+}
+
+.sync-toast button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sync-toast button:first-of-type {
+  background: #28a745;
+  color: white;
+}
+
+.sync-toast button:first-of-type:hover {
+  background: #218838;
+}
+
+.sync-toast button:last-of-type {
+  background: transparent;
+  color: #666;
+  font-size: 16px;
+  padding: 4px 8px;
+}
+
+.sync-toast button:last-of-type:hover {
+  color: #333;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .offline-status {
+    padding: 10px 12px;
+    min-width: auto;
+  }
+
+  .status-text {
+    font-size: 13px;
+  }
+
+  .sync-toast {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    flex-wrap: wrap;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .offline-status {
+    background: #2d2d2d;
+    border-color: #444;
+  }
+
+  .offline-status.online {
+    background: #1a3d1a;
+  }
+
+  .offline-status.pending {
+    background: #3d331a;
+  }
+
+  .offline-status.offline {
+    background: #3d281a;
+  }
+
+  .offline-status.offline-pending {
+    background: #3d1a1a;
+  }
+
+  .offline-status.syncing {
+    background: #1a2d3d;
+  }
+
+  .status-text,
+  .detail-value {
+    color: #e0e0e0;
+  }
+
+  .detail-label {
+    color: #999;
+  }
+
+  .sync-toast {
+    background: #2d2d2d;
+    border-color: #444;
+  }
+
+  .sync-toast span {
+    color: #e0e0e0;
+  }
+
+  .status-tooltip {
+    background: #2d2d2d;
+    border-color: #444;
+  }
+
+  .offline-hint {
+    background: #3d331a;
+    border-color: #5a4d28;
+    color: #e8d5a3;
+  }
+}

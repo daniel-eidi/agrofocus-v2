@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1a365d" />
+    <meta name="description" content="AgroFocus - Monitoramento de índices de vegetação e produtividade agrícola" />
+    
+    <title>AgroFocus - Monitoramento Agrícola</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin="" />
+    
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background: #f1f5f9;
+      }
+      
+      #root {
+        min-height: 100vh;
+      }
+      
+      /* Loading inicial */
+      .initial-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #1a365d 0%, #2d5a87 100%);
+        color: white;
+      }
+      
+      .initial-loading .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Você precisa habilitar JavaScript para usar o AgroFocus.</noscript>
+    
+    <div id="root">
+      <div class="initial-loading">
+        <div class="spinner"></div>
+        <h2>🌾 AgroFocus</h2>
+        <p>Carregando... (suporte offline ativo)</p>
+      </div>
+    </div>
+  </body>
+</html>

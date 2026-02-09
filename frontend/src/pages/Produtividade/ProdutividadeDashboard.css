@@ -1,0 +1,279 @@
+/** 
+ * Estilos do Dashboard de Produtividade
+ */
+
+.produtividade-dashboard {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.dashboard-header h1 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+}
+
+/* Filtros */
+.filtros-section {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filtro-grupo label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+}
+
+.filtro-grupo select {
+  padding: 10px 15px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  min-width: 180px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.filtro-grupo select:hover,
+.filtro-grupo select:focus {
+  border-color: #4CAF50;
+  outline: none;
+}
+
+.btn-atualizar {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-atualizar:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.btn-atualizar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Cards Section */
+.cards-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* Gráficos Section */
+.graficos-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.grafico-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.grafico-card h3 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.comparativo-anos {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 30px 20px;
+}
+
+.ano-card {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  min-width: 120px;
+}
+
+.ano-card.atual {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+}
+
+.ano-label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.ano-valor {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.variacao-seta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 2rem;
+}
+
+.variacao-seta span {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.variacao-seta .positivo {
+  color: #4CAF50;
+}
+
+.variacao-seta .negativo {
+  color: #f44336;
+}
+
+/* Dados Detalhados */
+.dados-detalhados {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dados-detalhados h3 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.dados-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.dado-item {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.dado-label {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.dado-valor {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.dado-valor.metodo {
+  font-size: 1.2rem;
+}
+
+.dado-desc {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+/* Estados de carregamento e erro */
+.carregando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.erro-mensagem {
+  background: #ffebee;
+  color: #c62828;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #c62828;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .filtros-section {
+    flex-direction: column;
+  }
+  
+  .filtro-grupo select {
+    width: 100%;
+  }
+  
+  .graficos-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .comparativo-anos {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .variacao-seta {
+    transform: rotate(90deg);
+  }
+}

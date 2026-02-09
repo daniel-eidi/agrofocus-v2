@@ -1,0 +1,244 @@
+/**
+ * Estilos específicos para o Mapa NDVI Mobile
+ * FASE 6 - AgroFocus
+ */
+
+/* Safe areas para dispositivos com notch */
+@supports (padding: max(0px)) {
+  .ndvi-mobile-container {
+    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    padding-left: max(env(safe-area-inset-left), 0px);
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+}
+
+/* Touch actions otimizados */
+.ndvi-map-container {
+  touch-action: pan-x pan-y pinch-zoom;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Botões com touch targets adequados (48x48px mínimo) */
+.ndvi-touch-button {
+  min-width: 48px;
+  min-height: 48px;
+  touch-action: manipulation;
+}
+
+/* Animações suaves */
+@keyframes ndvi-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ndvi-pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.ndvi-animate-fade-in {
+  animation: ndvi-fade-in 0.3s ease-out;
+}
+
+.ndvi-pulse-ring::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: inherit;
+  transform: translate(-50%, -50%);
+  animation: ndvi-pulse-ring 1.5s ease-out infinite;
+}
+
+/* Scroll behavior suave */
+.ndvi-scroll-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevenir zoom em inputs no iOS */
+@supports (-webkit-touch-callout: none) {
+  input[type="text"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Estilos para o mapa Leaflet em mobile */
+.leaflet-touch .leaflet-control-zoom {
+  display: none; /* Ocultar controles padrão no mobile (usamos custom) */
+}
+
+.leaflet-touch .leaflet-bar a {
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+}
+
+/* Customização do popup Leaflet */
+.ndvi-popup .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.ndvi-popup .leaflet-popup-content {
+  margin: 12px 16px;
+}
+
+/* Feedback visual para toques */
+.ndvi-touch-feedback {
+  position: relative;
+  overflow: hidden;
+}
+
+.ndvi-touch-feedback::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.ndvi-touch-feedback:active::after {
+  transform: translate(-50%, -50%) scale(2);
+  opacity: 1;
+}
+
+/* Legenda NDVI responsiva */
+.ndvi-legend {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+@media (max-width: 380px) {
+  .ndvi-legend {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .ndvi-legend-item:nth-child(4),
+  .ndvi-legend-item:nth-child(5) {
+    grid-column: span 1;
+  }
+}
+
+/* Previne bounce no iOS */
+.ndvi-prevent-bounce {
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
+}
+
+/* Estilos para fullscreen */
+:fullscreen {
+  background: #000;
+}
+
+:-webkit-full-screen {
+  background: #000;
+}
+
+:-moz-full-screen {
+  background: #000;
+}
+
+/* Skeleton loading */
+@keyframes ndvi-skeleton {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.ndvi-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: ndvi-skeleton 1.5s ease-in-out infinite;
+}
+
+/* Indicador de loading */
+.ndvi-loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: ndvi-spin 1s linear infinite;
+}
+
+@keyframes ndvi-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tooltip customizado */
+.ndvi-tooltip {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Estados de interação */
+.ndvi-interactive {
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.ndvi-interactive:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* Otimização para modo escuro automático */
+@media (prefers-color-scheme: dark) {
+  .ndvi-auto-dark {
+    color-scheme: dark;
+  }
+}
+
+/* Redução de movimento (acessibilidade) */
+@media (prefers-reduced-motion: reduce) {
+  .ndvi-animate-fade-in,
+  .ndvi-skeleton,
+  .ndvi-loading-spinner,
+  .ndvi-pulse-ring::before {
+    animation: none;
+  }
+}
