@@ -3,12 +3,20 @@
  * Servidor unificado com todas as rotas
  */
 
+// Carregar variáveis de ambiente PRIMEIRO - antes de qualquer importação
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// Debug: mostrar se as variáveis GEE foram carregadas
+console.log('🔧 ENV Check - GEE_PROJECT_ID:', process.env.GEE_PROJECT_ID ? '✅ OK' : '❌ Não definido');
+console.log('🔧 ENV Check - GEE_CLIENT_EMAIL:', process.env.GEE_CLIENT_EMAIL ? '✅ OK' : '❌ Não definido');
+console.log('🔧 ENV Check - GEE_PRIVATE_KEY:', process.env.GEE_PRIVATE_KEY ? `✅ OK (${process.env.GEE_PRIVATE_KEY.length} chars)` : '❌ Não definido');
+console.log('🔧 ENV Check - OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '✅ OK' : '❌ Não definido');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const path = require('path');
-require('dotenv').config();
 
 // Importações de rotas
 const talhoesRoutes = require('./routes/talhoes.routes');

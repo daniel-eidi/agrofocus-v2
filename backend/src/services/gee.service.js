@@ -29,8 +29,45 @@ class GEEService {
   async initialize() {
     if (this.initialized) return;
     
-    // Se estiver em modo de simulação, não tenta inicializar GEE
+    // Tentar carregar credenciais do arquivo JSON primeiro
+    const fs = require('fs');
+    const path = require('path');
+    const credentialsPath = path.join(__dirname, '../../config/gee-credentials.json');
+    
+    if (fs.existsSync(credentialsPath)) {
+      try {
+        const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+        this.projectId = credentials.project_id;
+        this.privateKey = credentials.private_key;
+        this.clientEmail = credentials.client_email;
+        console.log('✅ Credenciais GEE carregadas do arquivo JSON');
+      } catch (err) {
+        console.log('⚠️ Erro ao ler arquivo de credenciais:', err.message);
+      }
+    }
+    
+    // Fallback para variáveis de ambiente
+    if (!this.projectId) {
+      this.projectId = process.env.GEE_PROJECT_ID;
+      this.privateKey = process.env.GEE_PRIVATE_KEY;
+      this.clientEmail = process.env.GEE_CLIENT_EMAIL;
+      
+      // Remover aspas se presentes
+      if (this.privateKey) {
+        this.privateKey = this.privateKey.replace(/^["']|["']$/g, '');
+        this.privateKey = this.privateKey.replace(/\\n/g, '\n');
+      }
+    }
+    
+    this.modoSimulacao = !this.projectId || !this.privateKey || !this.clientEmail;
+    
+    console.log('🔧 GEE Initialize - Verificando credenciais:');
+    console.log('   Project ID:', this.projectId ? '✅' : '❌');
+    console.log('   Client Email:', this.clientEmail ? '✅' : '❌');
+    console.log('   Private Key:', this.privateKey ? `✅ (${this.privateKey.length} chars)` : '❌');
+    
     if (this.modoSimulacao) {
+      console.log('⚠️ GEE em MODO DE SIMULAÇÃO');
       this.initialized = true;
       return;
     }
