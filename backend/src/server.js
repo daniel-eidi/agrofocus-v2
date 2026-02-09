@@ -29,8 +29,9 @@ const safras = [
 ];
 
 const talhoes = [
-  { id: '1', nome: 'Talhão A1', area_hectares: 45.5, tipo_solo: 'Latossolo Vermelho', fazenda_nome: 'Fazenda São João' },
-  { id: '2', nome: 'Talhão A2', area_hectares: 38.0, tipo_solo: 'Argissolo', fazenda_nome: 'Fazenda São João' }
+  { id: '1', nome: 'Talhão A1', area_hectares: 45.5, tipo_solo: 'Latossolo Vermelho', fazenda_id: '1', fazenda_nome: 'Fazenda São João', centroide: { lat: -21.123456, lng: -47.123456 } },
+  { id: '2', nome: 'Talhão A2', area_hectares: 38.0, tipo_solo: 'Argissolo', fazenda_id: '1', fazenda_nome: 'Fazenda São João', centroide: { lat: -21.234567, lng: -47.234567 } },
+  { id: '3', nome: 'Talhão B1', area_hectares: 52.0, tipo_solo: 'Latossolo Vermelho-Amarelo', fazenda_id: '2', fazenda_nome: 'Fazenda Boa Vista', centroide: { lat: -19.7166, lng: -47.8833 } }
 ];
 
 const operadores = [
@@ -223,7 +224,15 @@ app.get('/api/ocorrencias', authMiddleware, (req, res) => {
 });
 
 app.post('/api/ocorrencias', authMiddleware, (req, res) => {
-  const { tipo, categoria, titulo, descricao, severidade, latitude, longitude, fotos } = req.body;
+  const { 
+    tipo, categoria, titulo, descricao, severidade, 
+    latitude, longitude, fotos, talhao_id, fazenda_id,
+    talhao_nome, fazenda_nome, area_afetada, metodo_analise, status
+  } = req.body;
+  
+  // Buscar nomes se não foram enviados
+  const talhao = talhoes.find(t => t.id === talhao_id);
+  const fazenda = fazendas.find(f => f.id === (fazenda_id || talhao?.fazenda_id));
   
   const novaOcorrencia = {
     id: Date.now().toString(),
@@ -233,18 +242,65 @@ app.post('/api/ocorrencias', authMiddleware, (req, res) => {
     descricao: descricao || '',
     data: new Date().toISOString(),
     severidade: severidade || 'media',
-    status: 'aberta',
-    talhao_nome: 'Talhão em edição',
+    status: status || 'aberta',
+    talhao_id: talhao_id || null,
+    talhao_nome: talhao_nome || talhao?.nome || 'Sem talhão',
+    fazenda_id: fazenda_id || talhao?.fazenda_id || null,
+    fazenda_nome: fazenda_nome || fazenda?.nome || 'Sem fazenda',
     operador_nome: req.usuario?.nome || 'Usuário',
     latitude: latitude || null,
     longitude: longitude || null,
+    area_afetada: area_afetada || null,
+    metodo_analise: metodo_analise || 'manual',
     foto_url_1: fotos?.[0] || null,
     foto_url_2: fotos?.[1] || null,
     foto_url_3: fotos?.[2] || null
   };
   
   ocorrencias.unshift(novaOcorrencia);
+  
+  // Se for análise por especialista, notificar
+  if (metodo_analise === 'especialista') {
+    console.log(`🔔 NOTIFICAÇÃO: Nova inspeção pendente de análise - ID ${novaOcorrencia.id}`);
+    console.log(`   Talhão: ${novaOcorrencia.talhao_nome}`);
+    console.log(`   Fotos: ${fotos?.length || 0}`);
+  }
+  
   res.status(201).json(novaOcorrencia);
+});
+
+// Rota de notificações para inspeções pendentes
+const notificacoesPendentes = [];
+
+app.post('/api/notificacoes/inspecao-pendente', authMiddleware, (req, res) => {
+  const { mensagem, talhao, fotos } = req.body;
+  
+  const notificacao = {
+    id: Date.now().toString(),
+    tipo: 'inspecao_pendente',
+    mensagem,
+    talhao,
+    fotos,
+    usuario_id: req.usuario.id,
+    usuario_nome: req.usuario.nome,
+    data: new Date().toISOString(),
+    lida: false
+  };
+  
+  notificacoesPendentes.push(notificacao);
+  
+  // Log para debug
+  console.log(`🔔 NOTIFICAÇÃO ESPECIALISTA:`);
+  console.log(`   De: ${req.usuario.nome}`);
+  console.log(`   Talhão: ${talhao}`);
+  console.log(`   Fotos: ${fotos}`);
+  console.log(`   Data: ${new Date().toLocaleString('pt-BR')}`);
+  
+  res.json({ sucesso: true, notificacao });
+});
+
+app.get('/api/notificacoes', authMiddleware, (req, res) => {
+  res.json(notificacoesPendentes.filter(n => !n.lida));
 });
 
 app.get('/api/estoque/insumos', authMiddleware, (req, res) => {
