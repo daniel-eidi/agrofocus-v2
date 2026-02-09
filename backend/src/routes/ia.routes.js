@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const OpenAI = require('openai');
 
-// Inicializar OpenAI (requere OPENAI_API_KEY no .env)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-fake-key-for-development'
-});
+// Função para obter instância OpenAI com API key atual
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || apiKey === 'sk-fake-key-for-development') {
+    return null;
+  }
+  return new OpenAI({ apiKey });
+}
 
 // Analisar imagem com Vision AI (GPT-4o)
 router.post('/analisar-imagem', async (req, res) => {
@@ -20,7 +24,8 @@ router.post('/analisar-imagem', async (req, res) => {
     }
 
     // Verificar se API key está configurada
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-fake-key-for-development') {
+    const openai = getOpenAI();
+    if (!openai) {
       // Modo simulação para desenvolvimento
       console.log('⚠️ OPENAI_API_KEY não configurada - usando simulação');
       
