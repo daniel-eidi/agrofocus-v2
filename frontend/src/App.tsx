@@ -16,6 +16,7 @@ import Monitoramento from './pages/Monitoramento'
 import Atividades from './pages/Atividades'
 import Ocorrencias from './pages/Ocorrencias'
 import InspecaoCampo from './pages/InspecaoCampo'
+import RastreamentoOperacoes from './pages/RastreamentoOperacoes'
 import Estoque from './pages/Estoque'
 import Financeiro from './pages/Financeiro'
 import Meteorologia from './pages/Meteorologia'
@@ -121,6 +122,7 @@ const Dashboard = () => (
         { path: '/atividades', icon: '📅', title: 'Atividades', desc: 'Operações' },
         { path: '/ocorrencias', icon: '🔍', title: 'Ocorrências', desc: 'Pragas/doenças' },
         { path: '/inspecao', icon: '📸', title: 'Inspeção de Campo', desc: 'Fotos + GPS + IA' },
+        { path: '/rastreamento', icon: '🛰️', title: 'Rastreamento GPS', desc: 'Operações em tempo real' },
         { path: '/estoque', icon: '📦', title: 'Estoque', desc: 'Insumos' },
         { path: '/financeiro', icon: '💰', title: 'Financeiro', desc: 'Despesas' },
         { path: '/meteorologia', icon: '🌡️', title: 'Meteorologia', desc: 'GDD/Previsão' },
@@ -164,6 +166,7 @@ function App() {
         <Route path="/atividades" element={<RotaProtegida><Atividades /></RotaProtegida>} />
         <Route path="/ocorrencias" element={<RotaProtegida><Ocorrencias /></RotaProtegida>} />
         <Route path="/inspecao" element={<RotaProtegida><InspecaoCampo /></RotaProtegida>} />
+        <Route path="/rastreamento" element={<RotaProtegida><RastreamentoOperacoes /></RotaProtegida>} />
         <Route path="/estoque" element={<RotaProtegida><Estoque /></RotaProtegida>} />
         <Route path="/financeiro" element={<RotaProtegida><Financeiro /></RotaProtegida>} />
         <Route path="/meteorologia" element={<RotaProtegida><Meteorologia /></RotaProtegida>} />
