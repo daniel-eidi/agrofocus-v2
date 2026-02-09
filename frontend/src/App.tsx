@@ -1,6 +1,11 @@
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route, Link, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext'
 
-// Páginas
+// Páginas públicas
+import Login from './pages/Login'
+import Registro from './pages/Registro'
+
+// Páginas protegidas
 import Fazendas from './pages/cadastros/Fazendas'
 import Safras from './pages/cadastros/Safras'
 import Talhoes from './pages/cadastros/Talhoes'
@@ -15,11 +20,76 @@ import Meteorologia from './pages/Meteorologia'
 import Produtividade from './pages/Produtividade'
 import Delineamento from './pages/Delineamento'
 
+// Componente para proteger rotas
+function RotaProtegida({ children }: { children: React.ReactNode }) {
+  const { usuario, loading } = useAuth()
+  
+  if (loading) {
+    return <div style={{padding: 20}}>Carregando...</div>
+  }
+  
+  if (!usuario) {
+    return <Navigate to="/login" replace />
+  }
+  
+  return <>{children}</>
+}
+
+// Layout com navegação
+function LayoutAutenticado() {
+  const { usuario, logout } = useAuth()
+  
+  return (
+    <div style={{fontFamily: 'system-ui, sans-serif', minHeight: '100vh', background: '#f3f4f6'}}>
+      <nav style={{
+        background: '#166534', 
+        color: 'white', 
+        padding: '15px 20px', 
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 100,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <Link to="/" style={{color: 'white', textDecoration: 'none', fontSize: 24, fontWeight: 'bold'}}>
+            🌱 AgroFocus
+          </Link>
+        </div>
+        
+        {usuario && (
+          <div style={{display: 'flex', alignItems: 'center', gap: 15}}>
+            <span style={{fontSize: 14}}>👤 {usuario.nome}</span>
+            <button 
+              onClick={logout}
+              style={{
+                background: 'transparent',
+                border: '1px solid white',
+                color: 'white',
+                padding: '6px 12px',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: 14
+              }}
+            >
+              Sair
+            </button>
+          </div>
+        )}
+      </nav>
+      
+      <RotaProtegida>
+        <Dashboard />
+      </RotaProtegida>
+    </div>
+  )
+}
+
+// Dashboard com menu
 const Dashboard = () => (
   <div style={{padding: 20}}>
-    <h1>🌱 AgroFocus</h1>
-    <p>Sistema de Gestão Agrícola Inteligente</p>
-    
+    <h1>🌱 Bem-vindo ao AgroFocus</h1>
     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginTop: 30}}>
       <div style={{background: '#166534', color: 'white', padding: 20, borderRadius: 8}}>
         <h3>NDVI Médio</h3>
@@ -38,126 +108,63 @@ const Dashboard = () => (
     <h2 style={{marginTop: 40, marginBottom: 20}}>📦 Módulos</h2>
     
     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 15}}>
-      <Link to="/fazendas" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>🚜 Fazendas</h3>
-          <p style={{color: '#666'}}>Cadastro de fazendas e propriedades</p>
-        </div>
-      </Link>
-      
-      <Link to="/safras" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>🌾 Safras</h3>
-          <p style={{color: '#666'}}>Gestão de safras e períodos</p>
-        </div>
-      </Link>
-      
-      <Link to="/talhoes" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>📐 Talhões</h3>
-          <p style={{color: '#666'}}>Áreas de plantio e geometria</p>
-        </div>
-      </Link>
-      
-      <Link to="/operadores" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>👷 Operadores</h3>
-          <p style={{color: '#666'}}>Equipe e funcionários</p>
-        </div>
-      </Link>
-      
-      <Link to="/equipamentos" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>🚜 Equipamentos</h3>
-          <p style={{color: '#666'}}>Frota e máquinas</p>
-        </div>
-      </Link>
-      
-      <Link to="/monitoramento" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>🛰️ Monitoramento</h3>
-          <p style={{color: '#666'}}>NDVI, NDRE, MSAVI</p>
-        </div>
-      </Link>
-      
-      <Link to="/atividades" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>📅 Atividades</h3>
-          <p style={{color: '#666'}}>Operações de campo</p>
-        </div>
-      </Link>
-      
-      <Link to="/ocorrencias" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>🔍 Ocorrências</h3>
-          <p style={{color: '#666'}}>Pragas e doenças</p>
-        </div>
-      </Link>
-      
-      <Link to="/estoque" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>📦 Estoque</h3>
-          <p style={{color: '#666'}}>Insumos e produtos</p>
-        </div>
-      </Link>
-      
-      <Link to="/financeiro" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>💰 Financeiro</h3>
-          <p style={{color: '#666'}}>Despesas e custos</p>
-        </div>
-      </Link>
-      
-      <Link to="/meteorologia" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>🌡️ Meteorologia</h3>
-          <p style={{color: '#666'}}>GDD e previsão</p>
-        </div>
-      </Link>
-      
-      <Link to="/produtividade" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>🤖 Produtividade</h3>
-          <p style={{color: '#666'}}>Estimativa ML</p>
-        </div>
-      </Link>
-      
-      <Link to="/delineamento" style={{textDecoration: 'none'}}>
-        <div style={{background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-          <h3>📐 Delineamento</h3>
-          <p style={{color: '#666'}}>Zonas de manejo</p>
-        </div>
-      </Link>
+      {[
+        { path: '/fazendas', icon: '🚜', title: 'Fazendas', desc: 'Cadastro de fazendas' },
+        { path: '/safras', icon: '🌾', title: 'Safras', desc: 'Gestão de safras' },
+        { path: '/talhoes', icon: '📐', title: 'Talhões', desc: 'Áreas de plantio' },
+        { path: '/operadores', icon: '👷', title: 'Operadores', desc: 'Equipe' },
+        { path: '/equipamentos', icon: '🚜', title: 'Equipamentos', desc: 'Frota' },
+        { path: '/monitoramento', icon: '🛰️', title: 'Monitoramento', desc: 'NDVI/NDRE/MSAVI' },
+        { path: '/atividades', icon: '📅', title: 'Atividades', desc: 'Operações' },
+        { path: '/ocorrencias', icon: '🔍', title: 'Ocorrências', desc: 'Pragas/doenças' },
+        { path: '/estoque', icon: '📦', title: 'Estoque', desc: 'Insumos' },
+        { path: '/financeiro', icon: '💰', title: 'Financeiro', desc: 'Despesas' },
+        { path: '/meteorologia', icon: '🌡️', title: 'Meteorologia', desc: 'GDD/Previsão' },
+        { path: '/produtividade', icon: '🤖', title: 'Produtividade', desc: 'ML' },
+        { path: '/delineamento', icon: '📐', title: 'Delineamento', desc: 'Zonas' },
+      ].map(item => (
+        <Link key={item.path} to={item.path} style={{textDecoration: 'none'}}>
+          <div style={{
+            background: 'white', 
+            padding: 20, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            transition: 'transform 0.2s',
+          }}>
+            <h3>{item.icon} {item.title}</h3>
+            <p style={{color: '#666'}}>{item.desc}</p>
+          </div>
+        </Link>
+      ))}
     </div>
   </div>
 )
 
 function App() {
   return (
-    <div style={{fontFamily: 'system-ui, sans-serif', minHeight: '100vh', background: '#f3f4f6'}}>
-      <nav style={{background: '#166534', color: 'white', padding: '15px 20px', position: 'sticky', top: 0, zIndex: 100}}>
-        <Link to="/" style={{color: 'white', textDecoration: 'none', fontSize: 24, fontWeight: 'bold'}}>
-          🌱 AgroFocus
-        </Link>
-      </nav>
-      
+    <AuthProvider>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/fazendas" element={<Fazendas />} />
-        <Route path="/safras" element={<Safras />} />
-        <Route path="/talhoes" element={<Talhoes />} />
-        <Route path="/operadores" element={<Operadores />} />
-        <Route path="/equipamentos" element={<Equipamentos />} />
-        <Route path="/monitoramento" element={<Monitoramento />} />
-        <Route path="/atividades" element={<Atividades />} />
-        <Route path="/ocorrencias" element={<Ocorrencias />} />
-        <Route path="/estoque" element={<Estoque />} />
-        <Route path="/financeiro" element={<Financeiro />} />
-        <Route path="/meteorologia" element={<Meteorologia />} />
-        <Route path="/produtividade" element={<Produtividade />} />
-        <Route path="/delineamento" element={<Delineamento />} />
+        {/* Rotas públicas */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/registro" element={<Registro />} />
+        
+        {/* Rotas protegidas */}
+        <Route path="/" element={<LayoutAutenticado />} />
+        <Route path="/fazendas" element={<RotaProtegida><Fazendas /></RotaProtegida>} />
+        <Route path="/safras" element={<RotaProtegida><Safras /></RotaProtegida>} />
+        <Route path="/talhoes" element={<RotaProtegida><Talhoes /></RotaProtegida>} />
+        <Route path="/operadores" element={<RotaProtegida><Operadores /></RotaProtegida>} />
+        <Route path="/equipamentos" element={<RotaProtegida><Equipamentos /></RotaProtegida>} />
+        <Route path="/monitoramento" element={<RotaProtegida><Monitoramento /></RotaProtegida>} />
+        <Route path="/atividades" element={<RotaProtegida><Atividades /></RotaProtegida>} />
+        <Route path="/ocorrencias" element={<RotaProtegida><Ocorrencias /></RotaProtegida>} />
+        <Route path="/estoque" element={<RotaProtegida><Estoque /></RotaProtegida>} />
+        <Route path="/financeiro" element={<RotaProtegida><Financeiro /></RotaProtegida>} />
+        <Route path="/meteorologia" element={<RotaProtegida><Meteorologia /></RotaProtegida>} />
+        <Route path="/produtividade" element={<RotaProtegida><Produtividade /></RotaProtegida>} />
+        <Route path="/delineamento" element={<RotaProtegida><Delineamento /></RotaProtegida>} />
       </Routes>
-    </div>
+    </AuthProvider>
   )
 }
 

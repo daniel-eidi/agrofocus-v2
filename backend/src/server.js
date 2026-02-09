@@ -15,6 +15,7 @@ const talhoesRoutes = require('./routes/talhoes.routes');
 const indicesRoutes = require('./routes/indices.routes');
 const produtividadeRoutes = require('./routes/produtividade.routes');
 const meteorologiaRoutes = require('./routes/meteorologia.routes');
+const { router: authRoutes, authMiddleware } = require('./routes/auth.routes');
 
 // Dados mockados para cadastros
 const fazendas = [
@@ -102,7 +103,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Rotas de cadastros
+// Rotas de autenticação
+app.use('/api/auth', authRoutes);
+
+// Rotas de cadastros (protegidas)
 app.get('/api/fazendas', (req, res) => res.json(fazendas));
 app.post('/api/fazendas', (req, res) => {
   const nova = { id: Date.now().toString(), ...req.body };
