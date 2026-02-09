@@ -125,21 +125,50 @@ export default function InspecaoCampo() {
 
     setAnalisandoIA(true)
     
-    // Simular análise de IA - em produção seria chamada a API Vision
-    setTimeout(() => {
-      const analises = [
-        'Detectado: Lagarta Helicoverpa armigera (91% confiança). Recomendação: Aplicar inseticida específico nas próximas 48h.',
-        'Detectado: Ferrugem Asiática (87% confiança). Recomendação: Monitorar e aplicar fungicida preventivo.',
-        'Detectado: Deficiência de Nitrogênio (82% confiança). Recomendação: Adubar com ureia.'
-      ]
-      const analiseAleatoria = analises[Math.floor(Math.random() * analises.length)]
+    try {
+      // Chamar API real de análise de imagem
+      const res = await fetch('/api/ia/analisar-imagem', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          imagemBase64: novaOcorrencia.fotos[0],
+          tipoCultura: 'soja' // Pode ser dinâmico no futuro
+        })
+      })
       
-      setNovaOcorrencia(prev => ({
-        ...prev,
-        descricao: prev.descricao || analiseAleatoria
-      }))
+      const data = await res.json()
+      
+      if (data.sucesso) {
+        const analise = data.analise
+        const textoAnalise = `Detectado: ${analise.tipo} (${(analise.confianca * 100).toFixed(0)}% confiança). 
+Recomendação: ${analise.recomendacao}
+Sintomas: ${analise.sintomas?.join(', ') || 'N/A'}
+Estágio: ${analise.estagio}
+Danos: ${analise.danos}`
+        
+        setNovaOcorrencia(prev => ({
+          ...prev,
+          descricao: prev.descricao || textoAnalise,
+          tipo: prev.tipo || analise.tipo,
+          categoria: prev.categoria || analise.categoria,
+          severidade: analise.severidade || prev.severidade
+        }))
+        
+        if (data.simulacao) {
+          alert('⚠️ Análise em modo simulação. Configure OPENAI_API_KEY no servidor para análise real.')
+        }
+      } else {
+        alert('Erro na análise: ' + data.erro)
+      }
+    } catch (err) {
+      console.error('Erro ao analisar:', err)
+      alert('Erro ao conectar com servidor de IA')
+    } finally {
       setAnalisandoIA(false)
-    }, 2000)
+    }
   }
 
   const salvarOcorrencia = async (e: React.FormEvent) => {

@@ -255,6 +255,10 @@ app.get('/api/financeiro/despesas', authMiddleware, (req, res) => {
   res.json(despesas);
 });
 
+// Rotas de IA (Vision API)
+const iaRoutes = require('./routes/ia.routes');
+app.use('/api/ia', authMiddleware, iaRoutes);
+
 // Rotas originais
 app.use('/api/talhoes', talhoesRoutes);
 app.use('/api', indicesRoutes);
