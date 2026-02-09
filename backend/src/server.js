@@ -315,6 +315,10 @@ app.get('/api/financeiro/despesas', authMiddleware, (req, res) => {
 const iaRoutes = require('./routes/ia.routes');
 app.use('/api/ia', authMiddleware, iaRoutes);
 
+// Rotas de Inspeção por Especialista (Workflow Híbrido)
+const inspecaoEspecialistaRoutes = require('./routes/inspecao-especialista.routes');
+app.use('/api/inspecoes', authMiddleware, inspecaoEspecialistaRoutes);
+
 // Rotas originais
 app.use('/api/talhoes', talhoesRoutes);
 app.use('/api', indicesRoutes);

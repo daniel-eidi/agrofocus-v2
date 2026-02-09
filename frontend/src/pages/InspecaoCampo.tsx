@@ -118,7 +118,8 @@ export default function InspecaoCampo() {
   const [culturaSelecionada, setCulturaSelecionada] = useState('soja')
   const [modoAnalise, setModoAnalise] = useState<'automatica' | 'especialista'>('automatica')
   const { token } = useAuth()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const albumInputRef = useRef<HTMLInputElement>(null)
 
   const [novaOcorrencia, setNovaOcorrencia] = useState({
     tipo: '',
@@ -351,56 +352,93 @@ Danos: ${analise.danos}`
   }
 
   const solicitarAnaliseEspecialista = async () => {
-    // Salvar ocorrência como pendente de análise
-    const res = await fetch('/api/ocorrencias', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        ...novaOcorrencia,
-        data: new Date().toISOString(),
-        status: 'pendente_analise',
-        metodo_analise: 'especialista',
-        descricao: '[PENDENTE ANÁLISE ESPECIALISTA] ' + (novaOcorrencia.descricao || '')
-      })
-    })
-
-    if (res.ok) {
-      // Notificar especialista (via sistema de notificações/cron)
-      await fetch('/api/notificacoes/inspecao-pendente', {
+    setAnalisandoIA(true)
+    
+    try {
+      const talhao = talhoes.find(t => t.id === novaOcorrencia.talhao_id)
+      
+      // Usar o novo endpoint de inspeção por especialista
+      const res = await fetch('/api/inspecoes/pendentes', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          mensagem: `Nova inspeção pendente de análise do especialista`,
-          talhao: novaOcorrencia.talhao_id,
-          fotos: novaOcorrencia.fotos.length
+          fotos: novaOcorrencia.fotos,
+          cultura: culturaSelecionada,
+          talhao_id: novaOcorrencia.talhao_id,
+          talhao_nome: talhao?.nome,
+          fazenda_id: novaOcorrencia.fazenda_id || talhao?.fazenda_id,
+          fazenda_nome: talhao?.fazenda_nome,
+          latitude: novaOcorrencia.latitude,
+          longitude: novaOcorrencia.longitude,
+          observacoes: novaOcorrencia.descricao || novaOcorrencia.titulo
         })
       })
-      
-      alert('✅ Análise solicitada ao especialista! Você será notificado quando estiver pronta.')
-      
-      // Resetar formulário
-      setNovaOcorrencia({
-        tipo: '',
-        categoria: '',
-        titulo: '',
-        descricao: '',
-        severidade: 'media',
-        latitude: null,
-        longitude: null,
-        fotos: [],
-        talhao_id: '',
-        fazenda_id: '',
-        area_afetada: ''
-      })
-      setShowForm(false)
-      fetchOcorrencias()
+
+      const data = await res.json()
+
+      if (data.sucesso) {
+        alert(`✅ Análise solicitada ao especialista!\n\nID: ${data.inspecao.id}\nTalhão: ${data.inspecao.talhao_nome}\n\nVocê será notificado quando o especialista (Jarvis) analisar as fotos. O resultado aparecerá automaticamente na lista de ocorrências.`)
+        
+        // Resetar formulário
+        setNovaOcorrencia({
+          tipo: '',
+          categoria: '',
+          titulo: '',
+          descricao: '',
+          severidade: 'media',
+          latitude: null,
+          longitude: null,
+          fotos: [],
+          talhao_id: '',
+          fazenda_id: '',
+          area_afetada: ''
+        })
+        setShowForm(false)
+        fetchOcorrencias()
+        
+        // Iniciar polling para verificar quando a análise estiver pronta
+        iniciarPollingStatus(data.inspecao.id)
+      } else {
+        alert('Erro ao solicitar análise: ' + data.erro)
+      }
+    } catch (err) {
+      console.error('Erro ao solicitar análise:', err)
+      alert('Erro ao conectar com servidor. Tente novamente.')
+    } finally {
+      setAnalisandoIA(false)
     }
+  }
+
+  // Polling para verificar status da análise do especialista
+  const iniciarPollingStatus = (inspecaoId: string) => {
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/inspecoes/${inspecaoId}/status`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        const data = await res.json()
+        
+        if (data.sucesso && data.status === 'analisada') {
+          // Análise pronta! Recarregar ocorrências
+          fetchOcorrencias()
+          alert(`🎉 Análise do especialista pronta!\n\nDiagnóstico: ${data.analise.tipo}\nSeveridade: ${data.analise.severidade}\n\nConfira os detalhes na lista de ocorrências.`)
+          return // Parar polling
+        }
+        
+        // Continuar polling se ainda estiver pendente
+        if (data.status === 'pendente') {
+          setTimeout(checkStatus, 30000) // Verificar a cada 30 segundos
+        }
+      } catch (err) {
+        console.error('Erro ao verificar status:', err)
+      }
+    }
+    
+    // Iniciar após 5 segundos
+    setTimeout(checkStatus, 5000)
   }
 
   const salvarOcorrencia = async (e: React.FormEvent) => {
@@ -672,11 +710,21 @@ Danos: ${analise.danos}`
           <div style={{marginTop: 20}}>
             <label style={{display: 'block', marginBottom: 8, fontWeight: 600}}>📸 Fotos (máx 3)</label>
             
+            {/* Input para Câmera */}
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="environment"
+              onChange={handleFotoUpload}
+              style={{display: 'none'}}
+            />
+            
+            {/* Input para Álbum */}
+            <input
+              ref={albumInputRef}
+              type="file"
+              accept="image/*"
               multiple
               onChange={handleFotoUpload}
               style={{display: 'none'}}
@@ -715,26 +763,49 @@ Danos: ${analise.danos}`
               ))}
               
               {novaOcorrencia.fotos.length < 3 && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    width: 120,
-                    height: 120,
-                    border: '2px dashed #ccc',
-                    borderRadius: 8,
-                    background: '#f9fafb',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 24
-                  }}
-                >
-                  📷
-                  <span style={{fontSize: 12, marginTop: 4}}>Tirar Foto</span>
-                </button>
+                <div style={{display: 'flex', gap: 8}}>
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      border: '2px dashed #166534',
+                      borderRadius: 8,
+                      background: '#f0fdf4',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 24
+                    }}
+                  >
+                    📷
+                    <span style={{fontSize: 12, marginTop: 4, color: '#166534'}}>Câmera</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => albumInputRef.current?.click()}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      border: '2px dashed #3b82f6',
+                      borderRadius: 8,
+                      background: '#eff6ff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 24
+                    }}
+                  >
+                    🖼️
+                    <span style={{fontSize: 12, marginTop: 4, color: '#3b82f6'}}>Álbum</span>
+                  </button>
+                </div>
               )}
             </div>
 
