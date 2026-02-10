@@ -285,7 +285,7 @@ def ndvi_tile():
             image = collection
         
         # Recorta pelo polígono
-        image = image.clip(geometry)
+        # image = image.clip(geometry)
         
         # Calcula NDVI: (B8 - B4) / (B8 + B4)
         ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
@@ -298,6 +298,9 @@ def ndvi_tile():
         }
         
         tile_url = get_tile_url(ndvi, vis_params)
+        
+        # DEBUG: Log da URL gerada
+        print(f"🛰️ TILE URL GERADA: {tile_url}")
         
         return jsonify({
             'success': True,
@@ -367,7 +370,7 @@ def calculate_ndvi():
             image = collection
         
         # Recorta e calcula NDVI
-        image = image.clip(geometry)
+        # image = image.clip(geometry)
         ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
         
         # Estatísticas
@@ -400,6 +403,9 @@ def calculate_ndvi():
         })
         
     except Exception as e:
+        import traceback
+        print(f"❌ ERRO em /ndvi: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({
             'success': False,
             'error': str(e),

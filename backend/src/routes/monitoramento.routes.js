@@ -103,10 +103,10 @@ router.get('/camadas/:talhaoId', async (req, res) => {
         if (geeResponse.data.success) {
           ndviData = {
             imagens: geeResponse.data.images.map(img => ({
-              id: img.id,
+              id: img.image_id,
               data: img.date,
-              cobertura_nuvens: img.cloudCover,
-              tile_url: img.tileUrl
+              cobertura_nuvens: img.cloud_cover,
+              tile_url: img.tile_url
             })),
             modo: geeResponse.data.mode || 'real'
           };
@@ -321,6 +321,113 @@ router.get('/talhoes', async (req, res) => {
     res.status(500).json({ 
       sucesso: false, 
       erro: 'Erro interno do servidor' 
+    });
+  }
+});
+
+/**
+ * GET /api/monitoramento/fazenda/:fazendaId
+ * Retorna todos os talhões de uma fazenda com geometria para visualização no mapa
+ */
+router.get('/fazenda/:fazendaId', async (req, res) => {
+  try {
+    const { fazendaId } = req.params;
+    
+    // 1. Buscar todos os talhões da fazenda com geometria
+    const talhoesResult = await query(`
+      SELECT 
+        t.id,
+        t.nome,
+        t.area_hectares,
+        t.status,
+        s.nome as safra_nome,
+        s.cultura,
+        ST_AsGeoJSON(t.geometria) as geometria_geojson,
+        CASE 
+          WHEN t.centroide IS NULL THEN NULL 
+          ELSE json_build_object(
+            'lat', ST_Y(t.centroide),
+            'lng', ST_X(t.centroide)
+          ) 
+        END as centroide
+      FROM talhoes t
+      LEFT JOIN safras s ON t.safra_id = s.id
+      WHERE t.fazenda_id = $1 
+        AND t.geometria IS NOT NULL
+      ORDER BY t.nome
+    `, [fazendaId]);
+
+    if (talhoesResult.rows.length === 0) {
+      return res.status(404).json({
+        sucesso: false,
+        erro: 'Nenhum talhão com geometria encontrado para esta fazenda'
+      });
+    }
+
+    const talhoes = talhoesResult.rows.map(t => ({
+      ...t,
+      geometria: t.geometria_geojson ? JSON.parse(t.geometria_geojson) : null
+    }));
+
+    // 2. Criar FeatureCollection para o GEE
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: talhoes.map(t => ({
+        type: 'Feature',
+        properties: { 
+          id: t.id, 
+          nome: t.nome,
+          cultura: t.cultura 
+        },
+        geometry: t.geometria
+      }))
+    };
+
+    // 3. Buscar NDVI cobrindo toda a área da fazenda
+    let ndviData = { imagens: [], modo: 'offline' };
+    
+    try {
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+        .toISOString().split('T')[0];
+
+      // Usar o centroide do primeiro talhão como referência para buscar imagens
+      const geeResponse = await axios.post(`${GEE_SERVICE_URL}/list-images`, {
+        geometry: featureCollection,
+        startDate,
+        endDate
+      }, { timeout: 30000 });
+
+      if (geeResponse.data.success) {
+        ndviData = {
+          imagens: geeResponse.data.images.map(img => ({
+            id: img.image_id,
+            data: img.date,
+            cobertura_nuvens: img.cloud_cover,
+            tile_url: null
+          })),
+          modo: geeResponse.data.mode || 'real'
+        };
+      }
+    } catch (geeError) {
+      console.warn('GEE Service indisponível para fazenda:', geeError.message);
+      ndviData = gerarMockNdvi();
+    }
+
+    res.json({
+      sucesso: true,
+      fazenda_id: parseInt(fazendaId),
+      talhoes: talhoes,
+      ndvi: ndviData,
+      total_talhoes: talhoes.length,
+      area_total_ha: talhoes.reduce((sum, t) => sum + parseFloat(t.area_hectares || 0), 0)
+    });
+
+  } catch (error) {
+    console.error('Erro em /monitoramento/fazenda:', error);
+    res.status(500).json({
+      sucesso: false,
+      erro: 'Erro interno do servidor'
     });
   }
 });
