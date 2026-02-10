@@ -311,11 +311,11 @@ const DelineamentoAuto = ({ fazendaId, onSave }) => {
                             <span className="stat-label">Talhões</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-value">{stats.area_total_ha.toFixed(2)}</span>
+                            <span className="stat-value">{(Number(stats.area_total_ha) || 0).toFixed(2)}</span>
                             <span className="stat-label">Área Total (ha)</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-value">{stats.area_media_ha.toFixed(2)}</span>
+                            <span className="stat-value">{(Number(stats.area_media_ha) || 0).toFixed(2)}</span>
                             <span className="stat-label">Área Média (ha)</span>
                         </div>
                         <div className="stat-item">
@@ -367,8 +367,8 @@ const DelineamentoAuto = ({ fazendaId, onSave }) => {
                                 });
                                 layer.bindPopup(`
                                     <b>${feature.properties.id}</b><br/>
-                                    Área: ${feature.properties.area_hectares.toFixed(2)} ha<br/>
-                                    Score: ${(feature.properties.score * 100).toFixed(1)}%
+                                    Área: ${(Number(feature.properties.area_hectares) || 0).toFixed(2)} ha<br/>
+                                    Score: ${(Number(feature.properties.score || 0) * 100).toFixed(1)}%
                                     ${feature.properties.zona_produtividade ? `<br/>Zona: ${feature.properties.zona_produtividade}` : ''}
                                 `);
                             }}
@@ -381,7 +381,7 @@ const DelineamentoAuto = ({ fazendaId, onSave }) => {
                 <div className="talhao-detail-panel">
                     <h4>✏️ Ajustar Talhão</h4>
                     <p><b>ID:</b> {selectedTalhao.properties.id}</p>
-                    <p><b>Área:</b> {selectedTalhao.properties.area_hectares.toFixed(2)} ha</p>
+                    <p><b>Área:</b> {(Number(selectedTalhao.properties.area_hectares) || 0).toFixed(2)} ha</p>
                     <button 
                         className="btn-ajustar"
                         onClick={() => {

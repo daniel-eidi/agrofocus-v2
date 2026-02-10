@@ -229,7 +229,7 @@ export default function MinhasFazendas() {
                   {fazenda.compartilhada && <span style={{fontSize: 12, color: '#666', marginLeft: 10}}>(compartilhada)</span>}
                 </h3>
                 <p style={{color: '#666', margin: '5px 0'}}>📍 {fazenda.municipio} - {fazenda.estado}</p>
-                <p style={{color: '#666', margin: '5px 0'}}>📏 Área: {fazenda.area_total} ha | 📋 CAR: {fazenda.car}</p>
+                <p style={{color: '#666', margin: '5px 0'}}>📏 Área: {(Number(fazenda.area_total) || 0).toFixed(2)} ha | 📋 CAR: {fazenda.car || '-'}</p>
                 <span style={{
                   background: getPermissaoColor(fazenda.minha_permissao),
                   color: 'white',

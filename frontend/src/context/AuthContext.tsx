@@ -41,8 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registrarPushSubscription = async (userId: string, token: string) => {
     try {
-      // Verificar se já existe subscription
-      const registration = await navigator.serviceWorker.ready;
+      // Verificar se service worker está disponível e pronto (com timeout)
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      if (registrations.length === 0) {
+        console.log('🔔 Nenhum service worker registrado, pulando push subscription');
+        return;
+      }
+      
+      // Usar timeout para evitar travamento
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 3000)
+      );
+      
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        timeoutPromise
+      ]) as ServiceWorkerRegistration;
+      
       const existingSubscription = await registration.pushManager.getSubscription();
       
       if (existingSubscription) {

@@ -278,7 +278,7 @@ export default function PainelEspecialista() {
                     <div>Talhao: {detalhes.talhao_nome}</div>
                     <div>Operador: {detalhes.operador_nome}</div>
                     {detalhes.latitude && (
-                      <div>GPS: {detalhes.latitude.toFixed(6)}, {detalhes.longitude?.toFixed(6)}</div>
+                      <div>GPS: {(Number(detalhes.latitude) || 0).toFixed(6)}, {(Number(detalhes.longitude) || 0).toFixed(6)}</div>
                     )}
                     <div>Enviado: {new Date(detalhes.data_criacao).toLocaleString('pt-BR')}</div>
                   </div>

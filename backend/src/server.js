@@ -30,7 +30,8 @@ const { router: authRoutes, authMiddleware } = require('./routes/auth.routes');
 const fazendasRoutes = require('./routes/fazendas.routes');
 const talhoesDbRoutes = require('./routes/talhoes-db.routes');
 const ocorrenciasRoutes = require('./routes/ocorrencias.routes');
-// const inspecoesRoutes = require('./routes/inspecoes.routes'); // TEMPORARIAMENTE DESATIVADO
+const inspecoesRoutes = require('./routes/inspecoes.routes'); // TEMPORARIAMENTE DESATIVADO
+const monitoramentoRoutes = require('./routes/monitoramento.routes'); // SUPER MAPA
 
 // Models para acesso direto (se necessário)
 const { 
@@ -105,8 +106,11 @@ app.use('/api/talhoes-db', authMiddleware, talhoesDbRoutes);
 // Ocorrências
 app.use('/api/ocorrencias', authMiddleware, ocorrenciasRoutes);
 
-// Inspeções (TEMPORARIAMENTE DESATIVADO)
-// app.use('/api/inspecoes', authMiddleware, inspecoesRoutes);
+// Inspeções
+app.use('/api/inspecoes', authMiddleware, inspecoesRoutes);
+
+// Monitoramento Integrado (Super Mapa)
+app.use('/api/monitoramento', authMiddleware, monitoramentoRoutes);
 
 // ============================================
 // ROTAS DE CADASTROS (PostgreSQL)
@@ -128,17 +132,67 @@ app.post('/api/safras', authMiddleware, async (req, res) => {
   try {
     const { nome, cultura, ano_inicio, ano_fim, status, fazenda_id, data_inicio, data_fim } = req.body;
     
-    if (!nome || !fazenda_id) {
-      return res.status(400).json({ sucesso: false, erro: 'Nome e fazenda são obrigatórios' });
+    if (!nome) {
+      return res.status(400).json({ sucesso: false, erro: 'Nome da safra é obrigatório' });
     }
     
     const safra = await Safra.create({
-      nome, cultura, ano_inicio, ano_fim, status, fazenda_id, data_inicio, data_fim
+      nome, 
+      cultura: cultura || null, 
+      ano_inicio: ano_inicio || new Date().getFullYear(), 
+      ano_fim: ano_fim || new Date().getFullYear() + 1, 
+      status: status || 'planejada', 
+      fazenda_id: fazenda_id || null, 
+      data_inicio, 
+      data_fim
     });
     
     res.status(201).json({ sucesso: true, safra });
   } catch (err) {
     console.error('Erro ao criar safra:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
+// UPDATE Safra
+app.put('/api/safras/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const safra = await Safra.update(id, req.body);
+    if (!safra) {
+      return res.status(404).json({ sucesso: false, erro: 'Safra não encontrada' });
+    }
+    res.json({ sucesso: true, safra });
+  } catch (err) {
+    console.error('Erro ao atualizar safra:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
+// DELETE Safra com verificação de integridade
+app.delete('/api/safras/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { query } = require('./config/database');
+    
+    // Verificar se há talhões vinculados a esta safra
+    const talhoesResult = await query(
+      'SELECT COUNT(*) as total FROM talhoes WHERE safra_id = $1',
+      [id]
+    );
+    const totalTalhoes = parseInt(talhoesResult.rows[0].total);
+    
+    if (totalTalhoes > 0) {
+      return res.status(400).json({
+        sucesso: false,
+        erro: `Não é possível excluir. Existem ${totalTalhoes} talhão(ões) vinculado(s) a esta safra.`
+      });
+    }
+    
+    await Safra.delete(id);
+    res.json({ sucesso: true, mensagem: 'Safra excluída com sucesso' });
+  } catch (err) {
+    console.error('Erro ao excluir safra:', err);
     res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
 });
@@ -155,6 +209,40 @@ app.get('/api/operadores', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/operadores', authMiddleware, async (req, res) => {
+  try {
+    const { nome, funcao, telefone, email, fazenda_id } = req.body;
+    
+    if (!nome) {
+      return res.status(400).json({ sucesso: false, erro: 'Nome é obrigatório' });
+    }
+    
+    const operador = await Operador.create({
+      nome,
+      funcao: funcao || null,
+      telefone: telefone || null,
+      email: email || null,
+      fazenda_id: fazenda_id || null
+    });
+    
+    res.status(201).json({ sucesso: true, operador });
+  } catch (err) {
+    console.error('Erro ao criar operador:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
+app.delete('/api/operadores/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Operador.delete(id);
+    res.json({ sucesso: true, mensagem: 'Operador desativado' });
+  } catch (err) {
+    console.error('Erro ao excluir operador:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
 // Equipamentos
 app.get('/api/equipamentos', authMiddleware, async (req, res) => {
   try {
@@ -167,6 +255,43 @@ app.get('/api/equipamentos', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/equipamentos', authMiddleware, async (req, res) => {
+  try {
+    const { nome, tipo, placa, marca, modelo, ano, fazenda_id } = req.body;
+    
+    if (!nome) {
+      return res.status(400).json({ sucesso: false, erro: 'Nome é obrigatório' });
+    }
+    
+    const equipamento = await Equipamento.create({
+      nome,
+      tipo: tipo || null,
+      placa: placa || null,
+      marca: marca || null,
+      modelo: modelo || null,
+      ano: ano || null,
+      status: 'disponivel',
+      fazenda_id: fazenda_id || null
+    });
+    
+    res.status(201).json({ sucesso: true, equipamento });
+  } catch (err) {
+    console.error('Erro ao criar equipamento:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
+app.delete('/api/equipamentos/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Equipamento.delete(id);
+    res.json({ sucesso: true, mensagem: 'Equipamento excluído' });
+  } catch (err) {
+    console.error('Erro ao excluir equipamento:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
 // Atividades
 app.get('/api/atividades', authMiddleware, async (req, res) => {
   try {
@@ -175,6 +300,82 @@ app.get('/api/atividades', authMiddleware, async (req, res) => {
     res.json(atividades);
   } catch (err) {
     console.error('Erro ao listar atividades:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
+app.post('/api/atividades', authMiddleware, async (req, res) => {
+  try {
+    const { 
+      descricao, tipo, data, data_atividade, status,
+      talhao_id, fazenda_id, operador_id, equipamento_id,
+      custo_total, observacoes
+    } = req.body;
+    
+    if (!descricao) {
+      return res.status(400).json({ sucesso: false, erro: 'Descrição é obrigatória' });
+    }
+    
+    // Buscar primeira fazenda do usuário se não fornecida
+    let finalFazendaId = fazenda_id;
+    let finalTalhaoId = talhao_id;
+    
+    if (!finalFazendaId && req.user) {
+      const fazendas = await Fazenda.findByProprietario(req.user.id);
+      if (fazendas.length > 0) {
+        finalFazendaId = fazendas[0].id;
+        
+        // Se talhao_id foi fornecido, usá-lo; senão, buscar primeiro talhão
+        if (!finalTalhaoId) {
+          const talhoes = await Talhao.findByFazenda(finalFazendaId);
+          if (talhoes.length > 0) {
+            finalTalhaoId = talhoes[0].id;
+          }
+        }
+      }
+    }
+    
+    const atividade = await Atividade.create({
+      descricao, 
+      tipo: tipo || 'PLANTIO', 
+      data_atividade: data || data_atividade, 
+      status: status || 'planejada',
+      talhao_id: finalTalhaoId || null, 
+      fazenda_id: finalFazendaId || null, 
+      operador_id: operador_id || null, 
+      equipamento_id: equipamento_id || null,
+      custo_total: custo_total || null, 
+      observacoes: observacoes || null
+    });
+    
+    res.status(201).json({ sucesso: true, atividade });
+  } catch (err) {
+    console.error('Erro ao criar atividade:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
+app.put('/api/atividades/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const atividade = await Atividade.update(id, req.body);
+    if (!atividade) {
+      return res.status(404).json({ sucesso: false, erro: 'Atividade não encontrada' });
+    }
+    res.json({ sucesso: true, atividade });
+  } catch (err) {
+    console.error('Erro ao atualizar atividade:', err);
+    res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
+  }
+});
+
+app.delete('/api/atividades/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Atividade.delete(id);
+    res.json({ sucesso: true, mensagem: 'Atividade excluída' });
+  } catch (err) {
+    console.error('Erro ao excluir atividade:', err);
     res.status(500).json({ sucesso: false, erro: 'Erro interno do servidor' });
   }
 });

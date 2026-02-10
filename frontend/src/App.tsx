@@ -1,5 +1,6 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { FarmProvider, useFarmContext } from './context/FarmContext'
 
 // Páginas públicas
 import Login from './pages/Login'
@@ -39,8 +40,50 @@ function RotaProtegida({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Filtros Globais no Header
+function GlobalFilters() {
+  const { fazendas, safras, selectedFazendaId, selectedSafraId, setSelectedFazendaId, setSelectedSafraId } = useFarmContext()
+  
+  const selectStyle = {
+    padding: '6px 10px',
+    borderRadius: 4,
+    border: 'none',
+    background: 'rgba(255,255,255,0.2)',
+    color: 'white',
+    fontSize: 13,
+    cursor: 'pointer',
+    maxWidth: 150
+  }
+  
+  return (
+    <div style={{display: 'flex', gap: 10, alignItems: 'center'}}>
+      <select 
+        value={selectedFazendaId} 
+        onChange={e => setSelectedFazendaId(e.target.value)}
+        style={selectStyle}
+      >
+        <option value="" style={{color: '#333'}}>🚜 Todas Fazendas</option>
+        {fazendas.map(f => (
+          <option key={f.id} value={f.id} style={{color: '#333'}}>{f.nome}</option>
+        ))}
+      </select>
+      
+      <select 
+        value={selectedSafraId} 
+        onChange={e => setSelectedSafraId(e.target.value)}
+        style={selectStyle}
+      >
+        <option value="" style={{color: '#333'}}>🌾 Todas Safras</option>
+        {safras.map(s => (
+          <option key={s.id} value={s.id} style={{color: '#333'}}>{s.nome}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 // Layout com navegação
-function LayoutAutenticado() {
+function LayoutAutenticado({ children }: { children?: React.ReactNode }) {
   const { usuario, logout } = useAuth()
   
   return (
@@ -52,51 +95,71 @@ function LayoutAutenticado() {
       <nav style={{
         background: '#166534', 
         color: 'white', 
-        padding: '15px 20px', 
+        padding: '10px 20px', 
         position: 'sticky', 
         top: 0, 
-        zIndex: 100,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        zIndex: 100
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/" style={{color: 'white', textDecoration: 'none', fontSize: 24, fontWeight: 'bold'}}>
-            🌱 AgroFocus
-          </Link>
-        </div>
-        
-        {usuario && (
-          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-            <span style={{fontSize: 14}}>👤 {usuario.nome}</span>
-            <button 
-              onClick={logout}
-              style={{
-                background: 'transparent',
-                border: '1px solid white',
-                color: 'white',
-                padding: '6px 12px',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: 14
-              }}
-            >
-              Sair
-            </button>
+        {/* Linha superior: Logo + Filtros + Usuário */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 10
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+            <Link to="/" style={{color: 'white', textDecoration: 'none', fontSize: 20, fontWeight: 'bold'}}>
+              🌱 AgroFocus
+            </Link>
+            <Link to="/" style={{
+              color: 'white', 
+              textDecoration: 'none', 
+              fontSize: 14,
+              background: 'rgba(255,255,255,0.1)',
+              padding: '5px 10px',
+              borderRadius: 4
+            }}>
+              🏠 Início
+            </Link>
           </div>
-        )}
+          
+          {/* Filtros Globais (centro) */}
+          <GlobalFilters />
+          
+          {/* Usuário (direita) */}
+          {usuario && (
+            <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+              <span style={{fontSize: 13}}>👤 {usuario.nome}</span>
+              <button 
+                onClick={logout}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.5)',
+                  color: 'white',
+                  padding: '5px 10px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 13
+                }}
+              >
+                Sair
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
       
-      <RotaProtegida>
-        <Dashboard />
-      </RotaProtegida>
+      <div style={{padding: 20}}>
+        {children || <Dashboard />}
+      </div>
     </div>
   )
 }
 
 // Dashboard com menu
 const Dashboard = () => (
-  <div style={{padding: 20}}>
+  <div>
     <h1>🌱 Bem-vindo ao AgroFocus</h1>
     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginTop: 30}}>
       <div style={{background: '#166534', color: 'white', padding: 20, borderRadius: 8}}>
@@ -150,31 +213,163 @@ const Dashboard = () => (
   </div>
 )
 
-function App() {
+function AppContent() {
   return (
-    <AuthProvider>
+    <FarmProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
-        <Route path="/" element={<LayoutAutenticado />} />
-        <Route path="/minhas-fazendas" element={<RotaProtegida><MinhasFazendas /></RotaProtegida>} />
-        <Route path="/fazendas" element={<RotaProtegida><Fazendas /></RotaProtegida>} />
-        <Route path="/safras" element={<RotaProtegida><Safras /></RotaProtegida>} />
-        <Route path="/talhoes" element={<RotaProtegida><Talhoes /></RotaProtegida>} />
-        <Route path="/operadores" element={<RotaProtegida><Operadores /></RotaProtegida>} />
-        <Route path="/equipamentos" element={<RotaProtegida><Equipamentos /></RotaProtegida>} />
-        <Route path="/monitoramento" element={<RotaProtegida><Monitoramento /></RotaProtegida>} />
-        <Route path="/atividades" element={<RotaProtegida><Atividades /></RotaProtegida>} />
-        <Route path="/ocorrencias" element={<RotaProtegida><Ocorrencias /></RotaProtegida>} />
-        <Route path="/inspecao" element={<RotaProtegida><InspecaoCampo /></RotaProtegida>} />
-        <Route path="/especialista" element={<RotaProtegida><PainelEspecialista /></RotaProtegida>} />
-        <Route path="/rastreamento" element={<RotaProtegida><RastreamentoOperacoes /></RotaProtegida>} />
-        <Route path="/estoque" element={<RotaProtegida><Estoque /></RotaProtegida>} />
-        <Route path="/financeiro" element={<RotaProtegida><Financeiro /></RotaProtegida>} />
-        <Route path="/meteorologia" element={<RotaProtegida><Meteorologia /></RotaProtegida>} />
-        <Route path="/produtividade" element={<RotaProtegida><Produtividade /></RotaProtegida>} />
-        <Route path="/delineamento" element={<RotaProtegida><Delineamento /></RotaProtegida>} />
+        
+        <Route path="/" element={
+          <RotaProtegida>
+            <LayoutAutenticado />
+          </RotaProtegida>
+        } />
+        
+        <Route path="/minhas-fazendas" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <MinhasFazendas />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/fazendas" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Fazendas />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/safras" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Safras />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/talhoes" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Talhoes />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/operadores" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Operadores />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/equipamentos" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Equipamentos />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/monitoramento" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Monitoramento />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/atividades" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Atividades />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/ocorrencias" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Ocorrencias />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/inspecao" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <InspecaoCampo />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/especialista" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <PainelEspecialista />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/rastreamento" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <RastreamentoOperacoes />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/estoque" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Estoque />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/financeiro" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Financeiro />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/meteorologia" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Meteorologia />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/produtividade" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Produtividade />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
+        
+        <Route path="/delineamento" element={
+          <RotaProtegida>
+            <LayoutAutenticado>
+              <Delineamento />
+            </LayoutAutenticado>
+          </RotaProtegida>
+        } />
       </Routes>
+    </FarmProvider>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
     </AuthProvider>
   )
 }

@@ -314,7 +314,7 @@ export default function InspecaoCampo() {
         if (data.simulacao) {
           // Análise simulada
           const analise = data.analise
-          const textoAnalise = `Detectado: ${analise.tipo} (${(analise.confianca * 100).toFixed(0)}% confiança)
+          const textoAnalise = `Detectado: ${analise.tipo} (${(Number(analise.confianca || 0) * 100).toFixed(0)}% confiança)
 Recomendação: ${analise.recomendacao}
 Sintomas: ${analise.sintomas?.join(', ') || 'N/A'}
 Estágio: ${analise.estagio}
@@ -683,8 +683,8 @@ Danos: ${analise.danos}`
                 <strong>📍 Localização GPS</strong>
                 {novaOcorrencia.latitude && (
                   <p style={{margin: '4px 0', color: '#166534', fontSize: 14}}>
-                    Lat: {novaOcorrencia.latitude.toFixed(6)}, 
-                    Lng: {novaOcorrencia.longitude?.toFixed(6)}
+                    Lat: {(Number(novaOcorrencia.latitude) || 0).toFixed(6)}, 
+                    Lng: {(Number(novaOcorrencia.longitude) || 0).toFixed(6)}
                   </p>
                 )}
               </div>
@@ -960,7 +960,7 @@ Danos: ${analise.danos}`
                   <span>📍 {o.talhao_nome || 'Sem talhão'}</span>
                   <span>📅 {new Date(o.data).toLocaleDateString('pt-BR')}</span>
                   {o.latitude && (
-                    <span>🌐 GPS: {o.latitude.toFixed(4)}, {o.longitude?.toFixed(4)}</span>
+                    <span>🌐 GPS: {(Number(o.latitude) || 0).toFixed(4)}, {(Number(o.longitude) || 0).toFixed(4)}</span>
                   )}
                   <span>👤 {o.operador_nome || 'Operador'}</span>
                 </div>
@@ -970,7 +970,7 @@ Danos: ${analise.danos}`
                     <strong>🤖 Análise IA:</strong> {o.ia_analise}
                     {o.ia_confianca && (
                       <span style={{marginLeft: 8, fontSize: 12}}>
-                        ({(o.ia_confianca * 100).toFixed(0)}% confiança)
+                        ({(Number(o.ia_confianca || 0) * 100).toFixed(0)}% confiança)
                       </span>
                     )}
                   </div>

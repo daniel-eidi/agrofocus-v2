@@ -869,30 +869,36 @@ const DespesaModel = {
 // ============================================
 const AtividadeModel = {
     async findAll(filters = {}) {
-        let sql = 'SELECT * FROM atividades';
+        let sql = `
+            SELECT a.*, 
+                   t.nome as talhao_nome,
+                   a.data_atividade as data
+            FROM atividades a
+            LEFT JOIN talhoes t ON a.talhao_id = t.id
+        `;
         const conditions = [];
         const values = [];
 
         if (filters.fazenda_id) {
             values.push(filters.fazenda_id);
-            conditions.push(`fazenda_id = $${values.length}`);
+            conditions.push(`a.fazenda_id = $${values.length}`);
         }
 
         if (filters.talhao_id) {
             values.push(filters.talhao_id);
-            conditions.push(`talhao_id = $${values.length}`);
+            conditions.push(`a.talhao_id = $${values.length}`);
         }
 
         if (filters.status) {
             values.push(filters.status);
-            conditions.push(`status = $${values.length}`);
+            conditions.push(`a.status = $${values.length}`);
         }
 
         if (conditions.length > 0) {
             sql += ' WHERE ' + conditions.join(' AND ');
         }
 
-        sql += ' ORDER BY data_atividade DESC';
+        sql += ' ORDER BY a.data_atividade DESC';
         
         const result = await query(sql, values);
         return result.rows;
@@ -901,6 +907,54 @@ const AtividadeModel = {
     async findById(id) {
         const result = await query('SELECT * FROM atividades WHERE id = $1', [id]);
         return result.rows[0] || null;
+    },
+
+    async create(data) {
+        const {
+            descricao, tipo, data_atividade, status = 'pendente',
+            talhao_id, fazenda_id, operador_id, equipamento_id,
+            custo_total, observacoes
+        } = data;
+
+        const result = await query(
+            `INSERT INTO atividades (
+                descricao, tipo, data_atividade, status,
+                talhao_id, fazenda_id, operador_id, equipamento_id,
+                custo_total, observacoes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             RETURNING *`,
+            [descricao, tipo, data_atividade, status,
+             talhao_id, fazenda_id, operador_id, equipamento_id,
+             custo_total, observacoes]
+        );
+        return result.rows[0];
+    },
+
+    async update(id, updates) {
+        const fields = [];
+        const values = [];
+        let paramCount = 1;
+
+        for (const [key, value] of Object.entries(updates)) {
+            if (value !== undefined) {
+                fields.push(`${key} = $${paramCount}`);
+                values.push(value);
+                paramCount++;
+            }
+        }
+
+        if (fields.length === 0) return null;
+
+        values.push(id);
+        const result = await query(
+            `UPDATE atividades SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+            values
+        );
+        return result.rows[0] || null;
+    },
+
+    async delete(id) {
+        await query('DELETE FROM atividades WHERE id = $1', [id]);
     }
 };
 

@@ -227,10 +227,36 @@ router.put('/:id', authMiddleware, checkFazendaPermissao(PERMISSOES.GERENTE), as
   }
 });
 
-// EXCLUIR talhão
+// EXCLUIR talhão com verificação de integridade
 router.delete('/:id', authMiddleware, checkFazendaPermissao(PERMISSOES.DONO), async (req, res) => {
   try {
     const { id } = req.params;
+    const { query } = require('../config/database');
+    
+    // Verificar se há ocorrências vinculadas
+    const ocorrenciasResult = await query(
+      'SELECT COUNT(*) as total FROM ocorrencias WHERE talhao_id = $1',
+      [id]
+    );
+    const totalOcorrencias = parseInt(ocorrenciasResult.rows[0].total);
+    
+    // Verificar se há inspeções vinculadas
+    const inspecoesResult = await query(
+      'SELECT COUNT(*) as total FROM inspecoes WHERE talhao_id = $1',
+      [id]
+    );
+    const totalInspecoes = parseInt(inspecoesResult.rows[0].total);
+    
+    if (totalOcorrencias > 0 || totalInspecoes > 0) {
+      const mensagens = [];
+      if (totalOcorrencias > 0) mensagens.push(`${totalOcorrencias} ocorrência(s)`);
+      if (totalInspecoes > 0) mensagens.push(`${totalInspecoes} inspeção(ões)`);
+      
+      return res.status(400).json({
+        sucesso: false,
+        erro: `Não é possível excluir. Existem ${mensagens.join(' e ')} vinculada(s) a este talhão.`
+      });
+    }
     
     await Talhao.delete(id);
     

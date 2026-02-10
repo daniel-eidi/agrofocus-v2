@@ -243,7 +243,7 @@ function NDVIOverlay({
         fillOpacity: 0.4
       });
 
-      rect.bindTooltip(`NDVI: ${polygon.value.toFixed(2)}`, {
+      rect.bindTooltip(`NDVI: ${(Number(polygon.value) || 0).toFixed(2)}`, {
         permanent: false,
         direction: 'top'
       });

@@ -239,7 +239,7 @@ export default function RastreamentoOperacoes() {
                 <div>📍 Pontos: {pontosGPS.length}</div>
                 {localizacao && (
                   <div style={{fontSize: 12, marginTop: 4}}>
-                    🎯 Precisão: {localizacao.accuracy.toFixed(0)}m
+                    🎯 Precisão: {(Number(localizacao.accuracy) || 0).toFixed(0)}m
                   </div>
                 )}
               </div>
@@ -399,10 +399,10 @@ export default function RastreamentoOperacoes() {
                   {[...pontosGPS].reverse().map(ponto => (
                     <tr key={ponto.id}>
                       <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{new Date(ponto.timestamp).toLocaleTimeString('pt-BR')}</td>
-                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{ponto.latitude.toFixed(6)}</td>
-                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{ponto.longitude.toFixed(6)}</td>
-                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(ponto.velocidade || 0).toFixed(1)} km/h</td>
-                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(ponto.accuracy || 0).toFixed(0)}m</td>
+                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(Number(ponto.latitude) || 0).toFixed(6)}</td>
+                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(Number(ponto.longitude) || 0).toFixed(6)}</td>
+                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(Number(ponto.velocidade) || 0).toFixed(1)} km/h</td>
+                      <td style={{padding: 10, borderBottom: '1px solid #eee'}}>{(Number(ponto.accuracy) || 0).toFixed(0)}m</td>
                     </tr>
                   ))}
                 </tbody>

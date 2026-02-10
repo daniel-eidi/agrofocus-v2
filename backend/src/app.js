@@ -12,6 +12,7 @@ require('dotenv').config();
 const indicesRoutes = require('./routes/indices.routes');
 const produtividadeRoutes = require('./routes/produtividade.routes');
 const meteorologiaRoutes = require('./routes/meteorologia.routes');
+const cadastrosRoutes = require('./routes/cadastros.routes.js'); // Add this line
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', indicesRoutes);
 app.use('/api', produtividadeRoutes);
 app.use('/api/meteorologia', meteorologiaRoutes);
+app.use('/api', cadastrosRoutes); // And this line
 
 // Rota de saúde
 app.get('/health', (req, res) => {

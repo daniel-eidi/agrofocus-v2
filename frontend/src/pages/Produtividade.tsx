@@ -57,7 +57,7 @@ export default function Produtividade() {
             
             <div style={{background: '#f3e8ff', padding: 20, borderRadius: 8, textAlign: 'center'}}>
               <p style={{color: '#666', margin: 0}}>Confiança</p>
-              <p style={{fontSize: 36, fontWeight: 'bold', color: '#7c3aed', margin: '10px 0'}}>{(resultado.confidence * 100)?.toFixed(0)}%</p>
+              <p style={{fontSize: 36, fontWeight: 'bold', color: '#7c3aed', margin: '10px 0'}}>{(Number(resultado.confidence || 0) * 100).toFixed(0)}%</p>
             </div>
             
             <div style={{background: '#fef3c7', padding: 20, borderRadius: 8, textAlign: 'center'}}>
