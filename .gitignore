@@ -1,12 +1,34 @@
-node_modules/
-dist/
-build/
+# AgroFocus - Arquivos ignorados
+
+# Variáveis de ambiente e senhas
 .env
 .env.local
+.env.*.local
+*.env
+
+# Docker
+docker-compose.override.yml
+docker-compose.prod.yml
+
+# Credenciais
+*.pem
+*.key
+credentials/
+secrets/
+config/local/
+
+# Dependências
+node_modules/
 __pycache__/
 *.pyc
-.DS_Store
+.pytest_cache/
+
+# Build
+dist/
+build/
+*.log
+
+# IDE
 .vscode/
 .idea/
-*.log
-backend/config/gee-credentials.json
+.DS_Store
